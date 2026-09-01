@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -69,6 +68,34 @@
     box-shadow:0 3px 0 rgba(36,89,111,.35);}
   #clear:active{transform:translateY(3px);box-shadow:none;}
 
+  .veil{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+    background:rgba(214,238,247,.93);padding:18px;}
+  .veil.on{display:flex;}
+  .card{width:min(340px,90vw);max-height:80vh;overflow:auto;background:#fff;
+    border:3px solid var(--line);border-radius:18px;padding:20px 18px 16px;text-align:center;
+    box-shadow:0 6px 0 rgba(36,89,111,.3);}
+  .card h2{margin:0 0 14px;font-size:21px;color:var(--ink);}
+  .big{font-size:44px;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-1px;}
+  .big small{font-size:17px;margin-left:2px;}
+  .sub{margin-top:8px;font-size:14px;font-weight:700;color:rgba(23,58,76,.6);}
+  .btn{margin-top:6px;padding:13px 22px;border:3px solid var(--line);border-radius:14px;
+    background:#fff;font-family:inherit;font-size:17px;font-weight:800;color:var(--ink);cursor:pointer;}
+  .btn.hot{background:linear-gradient(var(--amber),var(--amber-dk));}
+  .btn:active{transform:translateY(3px);}
+  .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;}
+  .modes{display:flex;gap:8px;justify-content:center;margin-top:12px;}
+  .modes .btn{flex:1;}
+  .modes .btn.sel{background:linear-gradient(var(--amber),var(--amber-dk));}
+  #wname{width:100%;margin-top:14px;padding:11px 12px;border:3px solid var(--line);
+    border-radius:12px;font-family:inherit;font-size:16px;font-weight:700;
+    color:var(--ink);text-align:center;background:#fff;}
+  .rk{display:flex;align-items:baseline;gap:8px;padding:8px 4px;font-size:15px;font-weight:700;
+    color:rgba(23,58,76,.75);border-bottom:2px solid rgba(36,89,111,.12);}
+  .rk:last-child{border-bottom:none;}
+  .rk.me{background:#fff6d8;}
+  .rk i{font-style:normal;width:26px;font-weight:800;color:var(--ink);}
+  .rk b{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rk u{text-decoration:none;font-weight:800;color:var(--ink);}
   #splats{position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden;}
   .splat{position:absolute;border-radius:50%;
     background:radial-gradient(circle at 38% 34%, rgba(255,255,255,.98), rgba(214,238,247,.85) 55%, rgba(214,238,247,0) 72%);}
@@ -97,6 +124,39 @@
     </div>
   </div>
 </div>
+
+<div class="veil on" id="startV"><div class="card">
+  <h2>고래</h2>
+  <div class="modes">
+    <button class="btn" id="mPhone" type="button">폰</button>
+    <button class="btn" id="mKey" type="button">키보드</button>
+  </div>
+  <div class="btns"><button class="btn" id="startRank" type="button">순위</button></div>
+</div></div>
+
+<div class="veil" id="overV"><div class="card">
+  <div class="big" id="ovTime">0<small>초</small></div>
+  <div class="sub" id="ovSub"></div>
+  <input id="wname" type="text" maxlength="8" placeholder="이름" autocomplete="off">
+  <div class="modes">
+    <button class="btn" id="oPhone" type="button">폰</button>
+    <button class="btn" id="oKey" type="button">키보드</button>
+  </div>
+  <div class="btns">
+    <button class="btn hot" id="ovAgain" type="button">다시</button>
+    <button class="btn" id="ovRank" type="button">순위</button>
+  </div>
+</div></div>
+
+<div class="veil" id="rankV"><div class="card">
+  <h2>순위</h2>
+  <div class="modes">
+    <button class="btn" id="rPhone" type="button">폰</button>
+    <button class="btn" id="rKey" type="button">키보드</button>
+  </div>
+  <div id="rankList" style="margin-top:12px"></div>
+  <div class="btns"><button class="btn" id="rankClose" type="button">닫기</button></div>
+</div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -161,14 +221,16 @@ var LINES = [
 var PLACARDS = ["", "", ""];
 
 /* ── 난이도 ──
-   낙하 시간 = FALL_BASE + 글자수 * FALL_PER_CHAR, 후반에 FALL_TIGHTEN 배까지 줄어듦 */
-var FALL_BASE = 6.5, FALL_PER_CHAR = 0.85, FALL_TIGHTEN = 0.80;
-/* 동시에 떠 있는 문장 수 (처음 → 끝) */
-var MAX_ON_EARLY = 3, MAX_ON_LATE = 6;
-/* 문장이 나오는 간격 (처음 → 끝) */
-var GAP_SLOW = 4.2, GAP_FAST = 1.8;
-/* 난이도가 최대에 도달하는 시간(초) */
-var RAMP = 180;
+   낙하 시간 = FALL_BASE + 글자수 * FALL_PER_CHAR, 후반에 FALL_TIGHTEN 배까지 줄어듦
+   폰과 키보드는 아예 다른 게임이라 값을 따로 씁니다. */
+var DIFF = {
+  phone: { FALL_BASE:8.0, FALL_PER_CHAR:0.95, FALL_TIGHTEN:0.85,
+           MAX_ON_EARLY:2, MAX_ON_LATE:4, GAP_SLOW:5.0, GAP_FAST:2.6, RAMP:300 },
+  key:   { FALL_BASE:5.2, FALL_PER_CHAR:0.60, FALL_TIGHTEN:0.70,
+           MAX_ON_EARLY:3, MAX_ON_LATE:7, GAP_SLOW:3.2, GAP_FAST:1.2, RAMP:150 }
+};
+var MODE = 'phone';
+var D = DIFF.phone;
 
 
 /* ════════ 오디오 ════════ */
@@ -226,16 +288,80 @@ function sfxCall(base,dur,glide,vol){
   o.start(t);o2.start(t);lfo.start(t);
   o.stop(t+dur+0.06);o2.stop(t+dur+0.06);lfo.stop(t+dur+0.06);
 }
+/* 문장을 받을 때마다 한 음씩 올라갑니다.
+   반음으로 올리면 금방 이상해지므로 5음계로 올립니다. */
+var PENTA=[0,2,4,7,9];
+function pentaHz(n){
+  var i=Math.min(n,29);
+  return 392*Math.pow(2,(PENTA[i%5]+Math.floor(i/5)*12)/12);
+}
 function sfxBlip(n){
   if(!AC||muted) return;
+  var t=AC.currentTime, f=pentaHz(n);
+  // 3도·5도를 얇게 얹어 화음으로 울립니다
+  var stack=[[1,0.10,'triangle'],[1.26,0.045,'sine'],[1.5,0.05,'sine'],[2,0.035,'triangle']];
+  for(var i=0;i<stack.length;i++){
+    var o=AC.createOscillator(); o.type=stack[i][2];
+    o.frequency.setValueAtTime(f*stack[i][0],t);
+    var g=AC.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(stack[i][1],t+0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+0.4);
+  }
+  // 맨 앞의 반짝이는 잡음
+  var s=AC.createBufferSource(); s.buffer=noiseBuf; s.loop=true;
+  var hp=AC.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=5200;
+  var ng=AC.createGain();
+  ng.gain.setValueAtTime(0.055,t);
+  ng.gain.exponentialRampToValueAtTime(0.0001,t+0.12);
+  s.connect(hp); hp.connect(ng); ng.connect(master); s.start(t); s.stop(t+0.16);
+}
+/* 헥헥. 들이쉬고 내쉬는 두 번. 지칠수록 거칠고 높아집니다. */
+function sfxPant(e){
+  if(!AC||muted) return;
   var t=AC.currentTime;
-  var o=AC.createOscillator(); o.type='square';
-  o.frequency.setValueAtTime(392*Math.pow(2,Math.min(n,24)/12),t);
+  function breath(at,dur,f0,f1,vol){
+    var s=AC.createBufferSource(); s.buffer=noiseBuf; s.loop=true;
+    var bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=0.8;
+    bp.frequency.setValueAtTime(f0,at);
+    bp.frequency.exponentialRampToValueAtTime(f1,at+dur);
+    var g=AC.createGain();
+    g.gain.setValueAtTime(0.0001,at);
+    g.gain.exponentialRampToValueAtTime(vol,at+dur*0.25);
+    g.gain.exponentialRampToValueAtTime(0.0001,at+dur);
+    s.connect(bp); bp.connect(g); g.connect(master);
+    s.start(at); s.stop(at+dur+0.05);
+  }
+  var v=0.05+e*0.09;
+  breath(t,        0.20+e*0.05, 420, 1500, v);        // 들이쉬고
+  breath(t+0.26,   0.26+e*0.06, 1300, 380, v*0.9);    // 내쉬고
+  // 목에서 걸리는 소리
+  var o=AC.createOscillator(); o.type='sawtooth';
+  o.frequency.setValueAtTime(96+e*40,t+0.26);
+  o.frequency.exponentialRampToValueAtTime(62,t+0.5);
+  var lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=520;
+  var g2=AC.createGain();
+  g2.gain.setValueAtTime(0.0001,t+0.26);
+  g2.gain.exponentialRampToValueAtTime(0.035*e,t+0.31);
+  g2.gain.exponentialRampToValueAtTime(0.0001,t+0.52);
+  o.connect(lp); lp.connect(g2); g2.connect(master);
+  o.start(t+0.26); o.stop(t+0.56);
+}
+
+/* 물이 튀는 순간의 잔반짝임 */
+function sfxSpark(power){
+  if(!AC||muted) return;
+  var t=AC.currentTime;
+  var s=AC.createBufferSource(); s.buffer=noiseBuf; s.loop=true;
+  var bp=AC.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=1.6;
+  bp.frequency.setValueAtTime(6800,t);
+  bp.frequency.exponentialRampToValueAtTime(2600,t+0.3);
   var g=AC.createGain();
   g.gain.setValueAtTime(0.0001,t);
-  g.gain.exponentialRampToValueAtTime(0.13,t+0.008);
-  g.gain.exponentialRampToValueAtTime(0.0001,t+0.15);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.2);
+  g.gain.exponentialRampToValueAtTime(0.05*Math.min(1.6,power),t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
+  s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t+0.4);
 }
 function sfxMiss(){
   if(!AC||muted) return;
@@ -445,7 +571,46 @@ function buildSplash(){
     depthWrite:false,opacity:0.95,sizeAttenuation:true}));
   scene.add(splash);
   for(var j=0;j<SPLASH_MAX;j++) splashData.push({live:false});
+  buildSparkle();
 }
+/* 물보라 위에 얹는 반짝임. 가산 합성이라 햇빛 튀는 것처럼 보입니다. */
+var SPK_MAX=260, sparkle=null, spkData=[];
+function buildSparkle(){
+  var cv=document.createElement('canvas'); cv.width=cv.height=64;
+  var cx=cv.getContext('2d');
+  var gr=cx.createRadialGradient(32,32,0,32,32,30);
+  gr.addColorStop(0,'rgba(255,255,255,1)');
+  gr.addColorStop(0.25,'rgba(255,250,225,0.85)');
+  gr.addColorStop(1,'rgba(255,240,200,0)');
+  cx.fillStyle=gr; cx.beginPath(); cx.arc(32,32,30,0,6.283); cx.fill();
+  // 십자로 뻗는 빛줄기
+  cx.strokeStyle='rgba(255,255,255,0.9)'; cx.lineWidth=2.6; cx.lineCap='round';
+  cx.beginPath(); cx.moveTo(32,4); cx.lineTo(32,60); cx.moveTo(4,32); cx.lineTo(60,32); cx.stroke();
+
+  var geo=new THREE.BufferGeometry();
+  var arr=new Float32Array(SPK_MAX*3);
+  for(var i=0;i<SPK_MAX;i++) arr[i*3+1]=-999;
+  geo.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  sparkle=new THREE.Points(geo,new THREE.PointsMaterial({
+    size:2.4,map:new THREE.CanvasTexture(cv),transparent:true,
+    blending:THREE.AdditiveBlending,depthWrite:false,opacity:0.95,sizeAttenuation:true}));
+  scene.add(sparkle);
+  for(var j=0;j<SPK_MAX;j++) spkData.push({live:false});
+}
+function spawnSparkle(n,ox,oy,oz,power,spread){
+  spread=spread||3; var made=0;
+  for(var i=0;i<SPK_MAX&&made<n;i++){
+    var p=spkData[i]; if(p.live) continue;
+    var a=Math.random()*Math.PI*2, r=Math.random()*spread;
+    p.live=true; p.life=0; p.max=0.5+Math.random()*0.9;
+    p.x=ox+Math.cos(a)*r; p.y=oy+Math.random()*1.6; p.z=oz+Math.sin(a)*r;
+    p.vx=Math.cos(a)*(2+Math.random()*7)*power;
+    p.vy=(7+Math.random()*13)*power;
+    p.vz=Math.sin(a)*(2+Math.random()*7)*power;
+    made++;
+  }
+}
+
 function buildRings(){
   var rg=new THREE.RingGeometry(1,1.17,56); rg.rotateX(-Math.PI/2);
   for(var i=0;i<RING_MAX;i++){
@@ -477,10 +642,14 @@ function spawnSplash(n,ox,oz,power,spread){
   }
 }
 function bigHit(x,z,power,spread){
-  spawnSplash(Math.round(180*power),x,z,power,spread||4);
+  power*=(1-0.66*EXH);
+  spawnSplash(Math.round(240*power),x,z,power,spread||4);
+  spawnSparkle(Math.round(38*power),x,0.4,z,power*0.85,(spread||4)*0.8);
   ripple(x,z,power*10);
+  ripple(x,z,power*6);
   sfxSplash(power,power>1.5);
-  shake=Math.max(shake,Math.min(1,power*0.42));
+  sfxSpark(power);
+  shake=Math.max(shake,Math.min(1,power*0.52));
   squash=Math.max(squash,Math.min(1,power*0.5));
 }
 function blow(){
@@ -496,6 +665,7 @@ function blow(){
     p.vz=(Math.random()-0.5)*3.5;
     made++;
   }
+  spawnSparkle(26,whale.position.x,Math.max(0.4,whale.position.y+3.4),whale.position.z-1.5,0.9,1.4);
   sfxSplash(0.75,true);
 }
 
@@ -521,7 +691,22 @@ function kf(u,pts){
   return pts[pts.length-1][1];
 }
 var REST_Y=-3.4;
+/* 게이지가 절반을 넘으면 지치기 시작합니다.
+   0 = 팔팔함, 1 = 다 왔음. 동작 크기와 속도, 물보라, 울음까지 여기에 묶입니다. */
+var EXH = 0;
+function exhAmp(){ return 1 - 0.78*EXH; }   // 동작 진폭
+function exhSpd(){ return 1 - 0.46*EXH; }   // 동작 속도
+
 var MOVES={
+  // 마지막에 남는 것. 춤이 아니라 꿈틀거림입니다.
+  TWITCH:{dur:1.5,cost:0.6,run:function(u,o,dt){
+    var q=Math.sin(u*Math.PI*7)*Math.max(0,1-u*0.5);
+    o.y=REST_Y+Math.abs(q)*0.28;
+    o.pitch=q*0.10;
+    o.roll=Math.sin(u*Math.PI*4.5)*0.14;
+    o.tail=Math.sin(u*Math.PI*9)*0.22;
+    o.finWave=0.35;
+  }},
   SLAP:{dur:1.3,cost:0.75,run:function(u,o,dt){
     o.y=kf(u,[[0,REST_Y],[0.32,-0.6],[0.55,-0.6],[0.71,-4.6],[1,REST_Y]]);
     o.pitch=kf(u,[[0,0],[0.32,-1.35],[0.55,-1.35],[0.70,0.30],[1,0]]);
@@ -587,13 +772,23 @@ var MOVES={
   }}
 };
 function pickMoves(combo){
+  // 다 지치면 춤이 안 나옵니다
+  if(EXH>=0.92) return ['TWITCH'];
+  if(EXH>=0.72) return combo>=5 ? ['SLAP','TWITCH'] : ['TWITCH'];
+  if(EXH>=0.45){
+    if(combo<=2) return ['SLAP'];
+    if(combo<=6) return ['ROLL','SLAP'];
+    return ['STAND','ROLL','SLAP'];
+  }
   if(combo<=1) return ['SLAP'];
   if(combo===2) return ['STAND'];
   if(combo===3) return ['ROLL','STAND'];
   if(combo===4) return ['THRASH','ROLL'];
   if(combo<=6)  return ['BREACH','THRASH'];
   if(combo<=9)  return ['BREACH','PORPOISE','STAND'];
-  return ['BREACH','SPINJUMP','THRASH','PORPOISE'];
+  if(combo<=13) return ['BREACH','SPINJUMP','THRASH','PORPOISE'];
+  // 여기서부터는 쉬지 않습니다
+  return ['BREACH','SPINJUMP','THRASH','PORPOISE','ROLL','BREACH'];
 }
 
 
@@ -688,13 +883,35 @@ function layoutFallzone(){
 }
 function nsp(s){ return String(s).replace(/\s+/g,''); }
 
+/* 폰에서 한글을 치면 ㄴ → 너 → 넌 순서로 조합됩니다.
+   그동안 접두사 비교가 깨져서 잠금이 풀리므로, 마지막 글자만 자모로 풀어서 비교합니다. */
+var CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+var JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
+var JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ',
+          'ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+function jamo(ch){
+  var c=ch.charCodeAt(0)-0xAC00;
+  if(c<0||c>11171) return ch;
+  return CHO[Math.floor(c/588)] + JUNG[Math.floor((c%588)/28)] + JONG[c%28];
+}
+function hpre(target, v){
+  if(!v.length) return false;
+  if(target.indexOf(v)===0) return true;
+  var head=v.slice(0,-1);
+  if(target.indexOf(head)!==0) return false;
+  var tc=target[head.length];
+  if(!tc) return false;
+  return jamo(tc).indexOf(jamo(v[v.length-1]))===0;
+}
+
 var SORTED=null, recent=[], falls=[], deadPile=[], S;
 
 function reset(){
   S={gauge:0, score:0, combo:0, best:0, dead:false, raid:0, raidT:0, nextThrow:0,
      queue:[], cur:null, curT:0, o:null,
      spawnT:1.0, t:0, run:0, yaw:0, roll:0, flip:0, swim:0,
-     nextBlow:5, wash:0};
+     nextBlow:5, wash:0, pantT:0};
+  EXH=0;
   falls.forEach(function(f){ f.el.remove(); }); falls=[];
   deadPile.forEach(function(g){ g.el.remove(); }); deadPile=[];
   recent=[];
@@ -725,7 +942,7 @@ function paint(){
   } else el.combo.style.opacity='0';
 }
 
-function progress(){ return Math.min(1, S.run/RAMP); }
+function progress(){ return Math.min(1, S.run/D.RAMP); }
 
 // 짧은 문장부터 시작해서 진행할수록 긴 문장이 섞인다
 function drawLine(prog){
@@ -763,13 +980,13 @@ function spawnLine(){
   if(hi<lo){ lo=hi=50; }
   d.style.left=(lo+Math.random()*(hi-lo)).toFixed(2)+'%';
 
-  var dur=(FALL_BASE + chars*FALL_PER_CHAR) * (1-(1-FALL_TIGHTEN)*prog);
+  var dur=(D.FALL_BASE + chars*D.FALL_PER_CHAR) * (1-(1-D.FALL_TIGHTEN)*prog);
   var span=WATERLINE+60;
   falls.push({el:d, text:text, norm:nsp(text), y:-60, speed:span/dur, done:false});
 }
 
 function maxOnScreen(){
-  return Math.round(MAX_ON_EARLY+(MAX_ON_LATE-MAX_ON_EARLY)*progress());
+  return Math.round(D.MAX_ON_EARLY+(D.MAX_ON_LATE-D.MAX_ON_EARLY)*progress());
 }
 
 function updateMatch(){
@@ -779,7 +996,7 @@ function updateMatch(){
     for(var i=0;i<falls.length;i++){
       var f=falls[i];
       if(f.done) continue;
-      if(f.norm.indexOf(v)===0){
+      if(hpre(f.norm, v)){
         if(!target || f.y>target.y) target=f;   // 더 급한 것 우선
       }
     }
@@ -822,6 +1039,11 @@ function complete(f){
   if(S.combo>S.best) S.best=S.combo;
   if(S.combo>=2) sfxBlip(S.combo);
 
+  // 받을 때마다 한 번 웁니다. 콤보가 쌓일수록 높고 까랑까랑하게.
+  sfxCall((480+Math.min(S.combo,22)*28)*(1-0.42*EXH),
+          (0.5+Math.min(S.combo,10)*0.02)*(1-0.3*EXH),
+          EXH>0.55 ? 0.72 : 1.62,
+          (0.13+Math.min(S.combo,12)*0.006)*(1-0.45*EXH));
   var mv=pickMoves(S.combo);
   for(var i=0;i<mv.length;i++){
     if(S.queue.length>=8) break;
@@ -857,6 +1079,9 @@ function missLine(f){
 
 function die(){
   S.dead=true;
+  LAST={ time: Math.round(S.run*10)/10, score: S.score, best: S.best, mode: MODE };
+  submitRun();
+  setTimeout(showOver, 4600);
   S.queue.length=0; S.cur=null; S.combo=0;
   el.input.value=''; el.input.disabled=true;
   el.input.classList.remove('nomatch');
@@ -883,14 +1108,14 @@ var last=performance.now();
 function loop(now){
   var dt=Math.min(0.05,(now-last)/1000); last=now;
   S.t+=dt;
-  if(!S.dead) S.run+=dt;
+  if(!S.dead && started) S.run+=dt;
 
-  if(!S.raid){
+  if(!S.raid && started){
     S.spawnT-=dt;
     if(S.spawnT<=0){
       if(falls.length<maxOnScreen()){
         spawnLine();
-        var gap=GAP_SLOW+(GAP_FAST-GAP_SLOW)*progress();
+        var gap=D.GAP_SLOW+(D.GAP_FAST-D.GAP_SLOW)*progress();
         S.spawnT=gap*(0.8+Math.random()*0.4);
       } else {
         S.spawnT=0.4;   // 꽉 찼으면 잠깐 뒤 다시 확인
@@ -918,25 +1143,37 @@ function loop(now){
            pitch:0,roll:0,lean:0,yawSpin:0,rollSpin:0,tail:0,finWave:0,seg:-1};
     }
     if(S.cur){
-      var M=MOVES[S.cur]; S.curT+=dt;
+      var M=MOVES[S.cur]; S.curT+=dt*exhSpd();
       var u=Math.min(1,S.curT/M.dur);
       S.o.yawSpin=0;S.o.rollSpin=0;S.o.tail=0;S.o.finWave=0;S.o.lean=0;S.o.roll=0;
       M.run(u,S.o,dt);
+      // 지칠수록 같은 기술이라도 덜 뜨고 덜 젖힙니다
+      var am=exhAmp();
+      if(am<1){
+        S.o.y=REST_Y+(S.o.y-REST_Y)*am;
+        S.o.pitch*=am; S.o.roll*=am; S.o.lean*=am;
+        S.o.tail*=am; S.o.yawSpin*=am; S.o.rollSpin*=am;
+      }
       perf=1; cost=M.cost;
       if(u>=1) S.cur=null;
     }
   }
 
-  if(!S.dead){
+  if(!S.dead && started){
     var mult=1+Math.min(15,S.combo)*0.075;
     S.gauge=Math.max(0,Math.min(100,S.gauge+(perf?3.6*cost*mult:-1.0)*dt));
+    EXH=Math.max(0,Math.min(1,(S.gauge-50)/45));
+    if(EXH>0){
+      S.pantT-=dt;
+      if(S.pantT<=0){ sfxPant(EXH); S.pantT=(1.5-EXH*0.95)*(0.85+Math.random()*0.3); }
+    }
     if(S.gauge>=100) die();
     paint();
   }
 
   if(!S.dead){
     S.nextBlow-=dt;
-    if(S.nextBlow<=0){ blow(); S.nextBlow=5.5+Math.random()*3.5; }
+    if(S.nextBlow<=0){ blow(); S.nextBlow=(5.5+Math.random()*3.5)*(1-0.55*EXH); }
   }
 
   if(S.dead && !S.raid){
@@ -950,7 +1187,7 @@ function loop(now){
   }
 
   var wp=water.geometry.attributes.position;
-  var amp=S.dead?0.45:(1+(perf?0.9:0));
+  var amp=S.dead?0.45:(1+(perf?1.7:0));
   for(var wi=0;wi<wp.count;wi++){
     var bx=waterBase[wi*3],bz=waterBase[wi*3+2];
     var dd=Math.sqrt(bx*bx+bz*bz);
@@ -1015,6 +1252,20 @@ function loop(now){
     sp.array[k*3]=p.x; sp.array[k*3+1]=p.y; sp.array[k*3+2]=p.z;
   }
   sp.needsUpdate=true;
+
+  var kp=sparkle.geometry.attributes.position;
+  for(var kk2=0;kk2<SPK_MAX;kk2++){
+    var q2=spkData[kk2];
+    if(!q2.live){ kp.array[kk2*3+1]=-999; continue; }
+    q2.life+=dt;
+    if(q2.life>=q2.max){ q2.live=false; kp.array[kk2*3+1]=-999; continue; }
+    q2.vy-=15*dt;
+    q2.x+=q2.vx*dt; q2.y+=q2.vy*dt; q2.z+=q2.vz*dt;
+    if(q2.y<0&&q2.vy<0){ q2.live=false; kp.array[kk2*3+1]=-999; continue; }
+    kp.array[kk2*3]=q2.x; kp.array[kk2*3+1]=q2.y; kp.array[kk2*3+2]=q2.z;
+  }
+  kp.needsUpdate=true;
+  sparkle.material.opacity = S.dead ? 0 : 0.95;
 
   for(var q=0;q<RING_MAX;q++){
     var rr=rings[q];
@@ -1085,7 +1336,167 @@ el.input.addEventListener('keydown',function(ev){
 el.clear.addEventListener('click',function(){
   el.input.value=''; updateMatch(); el.input.focus();
 });
-el.reset.addEventListener('click',function(){ unlock(); reset(); el.input.focus(); });
+el.reset.addEventListener('click',function(){ unlock(); closeAll(); reset(); el.input.focus(); });
+
+
+/* ════════ 모드 · 기록 · 순위 ════════ */
+/* 앱스스크립트 웹앱을 배포한 뒤 /exec 주소를 여기에 붙이면 순위가 공유됩니다.
+   비워두면 순위 버튼이 숨고 게임만 돌아갑니다. */
+var RANK_URL = 'https://script.google.com/macros/s/AKfycbzKmIYdOCYXNwXbNzvZWR2mQZk59Hhbpk7le-86VGqwzrgJZYqwGegYmRHcKhQ59fVV/exec';
+
+var started = false;
+var LAST = null;
+var myName = '';
+var myId = '';
+var rankMode = 'phone';
+try {
+  myName = window.localStorage.getItem('whale_name') || '';
+  myId   = window.localStorage.getItem('whale_id') || '';
+  var sm = window.localStorage.getItem('whale_mode');
+  if(sm==='key'||sm==='phone') MODE=sm;
+}catch(e){}
+if(!myId){
+  myId=(Date.now().toString(36)+Math.random().toString(36).slice(2)).replace(/[^a-z0-9]/g,'').slice(0,12);
+  try{ window.localStorage.setItem('whale_id', myId); }catch(e){}
+}
+
+var V = {
+  start:document.getElementById('startV'), over:document.getElementById('overV'),
+  rank:document.getElementById('rankV'), list:document.getElementById('rankList'),
+  name:document.getElementById('wname'),
+  ovTime:document.getElementById('ovTime'), ovSub:document.getElementById('ovSub')
+};
+V.name.value = myName;
+
+function fmtSec(v){
+  var m=Math.floor(v/60), r=v-m*60;
+  return m ? m+'분 '+r.toFixed(1)+'초' : r.toFixed(1)+'초';
+}
+function closeAll(){
+  V.start.classList.remove('on'); V.over.classList.remove('on'); V.rank.classList.remove('on');
+}
+function setMode(m){
+  MODE = m; D = DIFF[m]; rankMode = m;
+  try{ window.localStorage.setItem('whale_mode', m); }catch(e){}
+  paintModeBtns();
+}
+function paintModeBtns(){
+  [['mPhone','phone'],['oPhone','phone'],['mKey','key'],['oKey','key']].forEach(function(p){
+    document.getElementById(p[0]).classList.toggle('sel', MODE===p[1]);
+  });
+  document.getElementById('rPhone').classList.toggle('sel', rankMode==='phone');
+  document.getElementById('rKey').classList.toggle('sel', rankMode==='key');
+}
+
+function beginGame(m){
+  setMode(m);
+  unlock(); closeAll(); reset();
+  started = true;
+  el.input.focus();
+}
+
+function showOver(){
+  if(!LAST || S.raid) return;         // 포경선으로 끝난 판은 기록하지 않습니다
+  V.ovTime.innerHTML = fmtSec(LAST.time).replace(/([0-9.]+)(초|분)/g,
+    function(_,a,b){ return a+'<small>'+b+'</small>'; });
+  V.ovSub.textContent = '받은 문장 ' + LAST.score + ' · 최고 콤보 ' + LAST.best;
+  paintModeBtns();
+  V.over.classList.add('on');
+}
+
+function rankOn(){ return !!RANK_URL; }
+
+function rankFetch(mode, cb){
+  if(!rankOn()){ cb(null); return; }
+  var done=false, fn='whaleCb'+Date.now().toString(36);
+  var sc=document.createElement('script');
+  function cleanup(){
+    try{ delete window[fn]; }catch(e){ window[fn]=undefined; }
+    if(sc.parentNode) sc.parentNode.removeChild(sc);
+  }
+  function fail(){ if(done) return; done=true; cleanup(); cb(null); }
+  window[fn]=function(list){ if(done) return; done=true; cleanup(); cb(list); };
+  sc.onerror=fail;
+  sc.src=RANK_URL+(RANK_URL.indexOf('?')>=0?'&':'?')+
+         'game=whale&mode='+mode+'&callback='+fn+'&t='+Date.now();
+  document.head.appendChild(sc);
+  setTimeout(fail, 6000);
+}
+
+function submitRun(){
+  if(!rankOn() || !LAST || !myName || S.raid) return;
+  try{
+    fetch(RANK_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ game:'whale', id:myId, name:myName, mode:LAST.mode,
+                             time:LAST.time, score:LAST.score, best:LAST.best }),
+      keepalive:true
+    }).catch(function(){});
+  }catch(e){}
+}
+
+function readName(){
+  var v=(V.name.value||'').replace(/\s+/g,' ').trim().slice(0,8);
+  if(v && v!==myName){
+    myName=v;
+    try{ window.localStorage.setItem('whale_name', myName); }catch(e){}
+  }
+  return myName;
+}
+
+function renderRank(list){
+  V.list.innerHTML='';
+  if(!list || !list.length){
+    var e0=document.createElement('div'); e0.className='rk'; e0.textContent='—';
+    V.list.appendChild(e0); return;
+  }
+  var prev=null, r=0;
+  for(var i=0;i<list.length;i++){
+    if(list[i].time!==prev){ r=i+1; prev=list[i].time; }
+    var row=document.createElement('div');
+    row.className='rk'+(myName && list[i].name===myName ? ' me' : '');
+    var a=document.createElement('i'); a.textContent=r;
+    var b=document.createElement('b'); b.textContent=list[i].name;
+    var c=document.createElement('u'); c.textContent=fmtSec(list[i].time);
+    row.appendChild(a); row.appendChild(b); row.appendChild(c);
+    V.list.appendChild(row);
+  }
+}
+function openRank(mode){
+  rankMode = mode || rankMode;
+  paintModeBtns();
+  V.rank.classList.add('on');
+  V.list.innerHTML='<div class="rk">…</div>';
+  rankFetch(rankMode, renderRank);
+}
+
+document.getElementById('mPhone').addEventListener('click',function(){ beginGame('phone'); });
+document.getElementById('mKey').addEventListener('click',function(){ beginGame('key'); });
+document.getElementById('oPhone').addEventListener('click',function(){ setMode('phone'); });
+document.getElementById('oKey').addEventListener('click',function(){ setMode('key'); });
+document.getElementById('ovAgain').addEventListener('click',function(){
+  readName(); submitRun(); closeAll(); reset(); started=true; el.input.focus();
+});
+document.getElementById('ovRank').addEventListener('click',function(){
+  readName(); submitRun(); setTimeout(function(){ openRank(MODE); }, 900);
+});
+document.getElementById('startRank').addEventListener('click',function(){ openRank(MODE); });
+document.getElementById('rPhone').addEventListener('click',function(){ openRank('phone'); });
+document.getElementById('rKey').addEventListener('click',function(){ openRank('key'); });
+document.getElementById('rankClose').addEventListener('click',function(){
+  V.rank.classList.remove('on');
+  if(!started) V.start.classList.add('on');
+  else if(S.dead && LAST) V.over.classList.add('on');
+});
+if(!rankOn()){
+  document.getElementById('startRank').style.display='none';
+  document.getElementById('ovRank').style.display='none';
+  V.name.style.display='none';
+}
+// 터치 기기면 폰을 기본으로 잡아둡니다
+if(!('ontouchstart' in window) && window.innerWidth>820) setMode('key');
+else setMode(MODE);
 el.mute.addEventListener('click',function(){
   unlock(); muted=!muted;
   if(master) master.gain.value=muted?0:0.85;
