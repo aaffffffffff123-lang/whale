@@ -111,17 +111,6 @@
   #splats{position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden;}
   .splat{position:absolute;border-radius:50%;
     background:radial-gradient(circle at 38% 34%, rgba(255,255,255,.98), rgba(214,238,247,.85) 55%, rgba(214,238,247,0) 72%);}
-
-  #comicBtn{position:absolute;right:16px;bottom:112px;z-index:9;
-    width:38px;height:38px;padding:0;border-radius:999px;
-    background:var(--panel);border:3px solid var(--line);
-    font-family:inherit;font-weight:800;font-size:17px;color:var(--ink);
-    box-shadow:0 3px 0 rgba(36,89,111,.35);cursor:pointer;display:none;}
-  #comicBtn:active{transform:translateY(3px);box-shadow:none;}
-  #comicV{padding:12px;}
-  #comicV .card{width:min(560px,94vw);max-height:88vh;padding:12px;}
-  #comicV img{width:100%;height:auto;display:block;border-radius:8px;}
-  #comicV .btns{margin-top:10px;}
 </style>
 </head>
 <body>
@@ -171,7 +160,6 @@
   <div class="btns">
     <button class="btn hot" id="ovAgain" type="button">다시</button>
     <button class="btn" id="ovRank" type="button">순위</button>
-        <button class="btn" id="ovComic" type="button">원작</button>
   </div>
 </div></div>
 
@@ -183,11 +171,6 @@
   </div>
   <div id="rankList" style="margin-top:12px"></div>
   <div class="btns"><button class="btn" id="rankClose" type="button">닫기</button></div>
-</div></div>
-
-<div class="veil" id="comicV"><div class="card">
-  <img id="comicImg" alt="">
-  <div class="btns"><button class="btn" id="comicClose" type="button">닫기</button></div>
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1186,7 +1169,6 @@ function reset(){
   recent=[];
   el.input.disabled=false; el.input.value=''; el.input.classList.remove('nomatch');
   el.reset.classList.remove('hot');
-  comicBtn.style.display='none';
   el.combo.style.opacity='0';
   if(boat){ scene.remove(boat); boat=null; throwers.length=0; }
   stopEngine();
@@ -1369,7 +1351,6 @@ function die(){
   LAST={ time: Math.round(S.run*10)/10, score: S.score, best: S.best, mode: MODE };
   submitRun();
   later(showOver, 3400);
-  later(function(){ comicBtn.style.display='block'; }, 3400);
   S.queue.length=0; S.cur=null; S.combo=0;
   el.input.value=''; el.input.disabled=true;
   el.input.classList.remove('nomatch');
@@ -1386,7 +1367,6 @@ function startRaid(){
   el.input.disabled=true;
   if(!boat) boat=buildBoat();
   startEngine();
-  later(function(){ comicBtn.style.display='block'; }, 2000);
   later(function(){ el.reset.classList.add('hot'); },3200);
   paint();
 }
@@ -1695,32 +1675,12 @@ var V = {
 };
 V.name.value = myName;
 
-/* 원작 4컷. 게임이 끝난 뒤에만 눌러볼 수 있습니다. */
-var COMIC_SRC = 'whale-4cut.jpg';
-var comicBtn = { style:{} };
-var comicV   = document.getElementById('comicV');
-document.getElementById('comicImg').src = COMIC_SRC;
-
-document.getElementById('ovComic').addEventListener('click', function(){
-  closeAll();
-  comicV.classList.add('on');
-});
-document.getElementById('comicClose').addEventListener('click', function(){
-  comicV.classList.remove('on');
-  if(!started) V.start.classList.add('on');
-  else if(S.dead && LAST && !S.raid) V.over.classList.add('on');
-});
-comicV.addEventListener('click', function(ev){
-  if(ev.target === comicV) document.getElementById('comicClose').click();
-});
-
 function fmtSec(v){
   var m=Math.floor(v/60), r=v-m*60;
   return m ? m+'분 '+r.toFixed(1)+'초' : r.toFixed(1)+'초';
 }
 function closeAll(){
   V.start.classList.remove('on'); V.over.classList.remove('on'); V.rank.classList.remove('on');
-  comicV.classList.remove('on');
 }
 function setMode(m){
   MODE = m; D = DIFF[m]; rankMode = m;
