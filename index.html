@@ -111,6 +111,17 @@
   #splats{position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden;}
   .splat{position:absolute;border-radius:50%;
     background:radial-gradient(circle at 38% 34%, rgba(255,255,255,.98), rgba(214,238,247,.85) 55%, rgba(214,238,247,0) 72%);}
+
+  #comicBtn{position:absolute;right:16px;bottom:112px;z-index:9;
+    width:38px;height:38px;padding:0;border-radius:999px;
+    background:var(--panel);border:3px solid var(--line);
+    font-family:inherit;font-weight:800;font-size:17px;color:var(--ink);
+    box-shadow:0 3px 0 rgba(36,89,111,.35);cursor:pointer;display:none;}
+  #comicBtn:active{transform:translateY(3px);box-shadow:none;}
+  #comicV{padding:12px;}
+  #comicV .card{width:min(560px,94vw);max-height:88vh;padding:12px;}
+  #comicV img{width:100%;height:auto;display:block;border-radius:8px;}
+  #comicV .btns{margin-top:10px;}
 </style>
 </head>
 <body>
@@ -119,6 +130,7 @@
   <div id="gl"></div>
   <div id="fallzone"></div>
   <div id="splats"></div>
+  <button id="comicBtn" type="button" aria-label="원작 보기">?</button>
 
   <div id="topbar">
     <div class="pill" id="score"><span class="lbl">받은 문장</span><b id="scoreNum">0</b></div>
@@ -171,6 +183,11 @@
   </div>
   <div id="rankList" style="margin-top:12px"></div>
   <div class="btns"><button class="btn" id="rankClose" type="button">닫기</button></div>
+</div></div>
+
+<div class="veil" id="comicV"><div class="card">
+  <img id="comicImg" alt="">
+  <div class="btns"><button class="btn" id="comicClose" type="button">닫기</button></div>
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -233,19 +250,19 @@ var PLACARDS = ["", "", ""];
    낙하 시간 = FALL_BASE + 글자수 * FALL_PER_CHAR, 후반에 FALL_TIGHTEN 배까지 줄어듦
    폰과 키보드는 아예 다른 게임이라 값을 따로 씁니다. */
 var DIFF = {
-  phone: { FALL_BASE:8.0, FALL_PER_CHAR:0.95, FALL_TIGHTEN:0.85,
-           MAX_ON_EARLY:2, MAX_ON_LATE:6, GAP_SLOW:5.0, GAP_FAST:2.6, RAMP:300,
-           RATE:0.12, GAIN:2.2 },
-  key:   { FALL_BASE:5.2, FALL_PER_CHAR:0.60, FALL_TIGHTEN:0.70,
-           MAX_ON_EARLY:3, MAX_ON_LATE:10, GAP_SLOW:3.2, GAP_FAST:1.2, RAMP:150,
-           RATE:0.13, GAIN:1.2 }
+  phone: { FALL_BASE:7.5, FALL_PER_CHAR:0.90, FALL_TIGHTEN:0.85,
+           MAX_ON_EARLY:3, MAX_ON_LATE:8, GAP_SLOW:2.6, GAP_FAST:1.3, RAMP:100,
+           RATE:0.12, GAIN:6.0 },
+  key:   { FALL_BASE:5.0, FALL_PER_CHAR:0.58, FALL_TIGHTEN:0.70,
+           MAX_ON_EARLY:4, MAX_ON_LATE:12, GAP_SLOW:1.7, GAP_FAST:0.7, RAMP:80,
+           RATE:0.13, GAIN:3.4 }
 };
 var MODE = 'phone';
 var D = DIFF.phone;
 
 /* 판 길이를 정하는 값 둘.
    GAIN — 문장 하나를 받을 때마다 게이지가 바로 오르는 양. 이게 판 길이를 정합니다.
-          올리면 짧아지고 내리면 길어집니다. 폰 2.2 면 폰으로 쳐서 2~3분입니다.
+          올리면 짧아지고 내리면 길어집니다. 폰 6.0 이면 열일곱 장에 끝납니다.
    RATE — 고래가 춤추는 동안 추가로 차는 양. 콤보가 높아 큰 기술이 나오면 더 찹니다.
    회복은 개념만 남겨둔 값입니다. 게이지 50 에서 손을 놓으면 비우는 데 40분 걸립니다.
    아무것도 안 치면 0 에서 안 움직이므로 고래는 죽지 않습니다. */
@@ -1165,6 +1182,7 @@ function reset(){
   recent=[];
   el.input.disabled=false; el.input.value=''; el.input.classList.remove('nomatch');
   el.reset.classList.remove('hot');
+  comicBtn.style.display='none';
   el.combo.style.opacity='0';
   if(boat){ scene.remove(boat); boat=null; throwers.length=0; }
   stopEngine();
@@ -1240,7 +1258,7 @@ function spawnLine(){
 function maxOnScreen(){
   var m=Math.round(D.MAX_ON_EARLY+(D.MAX_ON_LATE-D.MAX_ON_EARLY)*progress());
   // 키패드가 올라와 낙하 구간이 짧아지면 겹쳐서 안 읽힙니다
-  var room=Math.max(2, Math.floor(WATERLINE/78));
+  var room=Math.max(2, Math.floor(WATERLINE/64));
   return Math.min(m, room);
 }
 
@@ -1346,14 +1364,15 @@ function die(){
   S.dead=true;
   LAST={ time: Math.round(S.run*10)/10, score: S.score, best: S.best, mode: MODE };
   submitRun();
-  later(showOver, 4600);
+  later(showOver, 3400);
+  later(function(){ comicBtn.style.display='block'; }, 3400);
   S.queue.length=0; S.cur=null; S.combo=0;
   el.input.value=''; el.input.disabled=true;
   el.input.classList.remove('nomatch');
   falls.forEach(function(f){ f.el.classList.remove('lock'); f.el.textContent=f.text; });
   sfxCall(300,3.6,0.16,0.34);
   later(function(){ sfxSplash(2.2,false); },320);
-  later(function(){ el.reset.classList.add('hot'); },4200);
+  later(function(){ el.reset.classList.add('hot'); },2800);
   paint();
 }
 
@@ -1363,6 +1382,7 @@ function startRaid(){
   el.input.disabled=true;
   if(!boat) boat=buildBoat();
   startEngine();
+  later(function(){ comicBtn.style.display='block'; }, 2000);
   later(function(){ el.reset.classList.add('hot'); },3200);
   paint();
 }
@@ -1442,7 +1462,7 @@ function loop(now){
     var burn = D.RATE*cost*mult*(1+EXH*1.2);
     var rest = GAUGE_DECAY*(1-EXH);          // 한 번 넘어가면 회복이 안 됩니다
     S.gauge=Math.max(0,Math.min(100,S.gauge+(perf?burn:-rest)*dt));
-    EXH=Math.max(0,Math.min(1,(S.gauge-12)/84));
+    EXH=Math.max(0,Math.min(1,(S.gauge-40)/58));
     if(EXH>0){
       S.pantT-=dt;
       if(S.pantT<=0){
@@ -1670,12 +1690,32 @@ var V = {
 };
 V.name.value = myName;
 
+/* 원작 4컷. 게임이 끝난 뒤에만 눌러볼 수 있습니다. */
+var COMIC_SRC = 'whale-4cut.jpg';
+var comicBtn = document.getElementById('comicBtn');
+var comicV   = document.getElementById('comicV');
+document.getElementById('comicImg').src = COMIC_SRC;
+
+comicBtn.addEventListener('click', function(){
+  closeAll();
+  comicV.classList.add('on');
+});
+document.getElementById('comicClose').addEventListener('click', function(){
+  comicV.classList.remove('on');
+  if(!started) V.start.classList.add('on');
+  else if(S.dead && LAST && !S.raid) V.over.classList.add('on');
+});
+comicV.addEventListener('click', function(ev){
+  if(ev.target === comicV) document.getElementById('comicClose').click();
+});
+
 function fmtSec(v){
   var m=Math.floor(v/60), r=v-m*60;
   return m ? m+'분 '+r.toFixed(1)+'초' : r.toFixed(1)+'초';
 }
 function closeAll(){
   V.start.classList.remove('on'); V.over.classList.remove('on'); V.rank.classList.remove('on');
+  comicV.classList.remove('on');
 }
 function setMode(m){
   MODE = m; D = DIFF[m]; rankMode = m;
