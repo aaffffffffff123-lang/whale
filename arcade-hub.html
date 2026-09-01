@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>오락실</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css">
+<style>
+  :root{
+    --floor:#E7EAE6;
+    --floor-line:#D3D8D2;
+    --ink:#1B2430;
+    --paper:#FFFFFF;
+    --blue:#1A3E8C;
+    --blue-dark:#122C64;
+    --hole:#B9C0BA;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100dvh;
+    background:var(--floor);
+    background-image:
+      linear-gradient(var(--floor-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--floor-line) 1px, transparent 1px);
+    background-size:72px 72px;
+    color:var(--ink);
+    font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    display:flex;
+    justify-content:center;
+    padding:20px 16px calc(28px + env(safe-area-inset-bottom));
+  }
+  .shell{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;}
+
+  .brand{
+    align-self:flex-start;
+    font-weight:800;
+    font-size:20px;
+    letter-spacing:-0.04em;
+    line-height:1;
+    padding:8px 12px;
+    border:3px solid var(--ink);
+    background:var(--paper);
+    box-shadow:4px 4px 0 var(--ink);
+  }
+
+  .stage{
+    margin:clamp(22px,6vh,48px) 0 clamp(24px,5vh,40px);
+    width:min(74vw,44vh,360px);
+    aspect-ratio:1/1;
+    position:relative;
+    touch-action:none;
+    cursor:grab;
+  }
+  .stage.dragging{cursor:grabbing;}
+
+  /* 바닥에 뚫린 구멍 */
+  .hole{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    background:radial-gradient(circle at 50% 38%, #F7F8F5 0%, #E2E6E1 58%, #B3BAB3 100%);
+    overflow:hidden;
+    box-shadow:inset 0 14px 26px rgba(27,36,48,.34), inset 0 -6px 14px rgba(27,36,48,.12);
+  }
+  .hole canvas{display:block;width:100%;height:100%;}
+
+  /* 개구부 둘레 */
+  .rim{
+    position:absolute;
+    inset:-13px;
+    border-radius:50%;
+    padding:13px;
+    background:var(--blue);
+    -webkit-mask:radial-gradient(circle, transparent calc(50% - 13px), #000 calc(50% - 13px));
+    mask:radial-gradient(circle, transparent calc(50% - 13px), #000 calc(50% - 13px));
+    pointer-events:none;
+  }
+  .rim::after{
+    content:"";
+    position:absolute;
+    inset:13px;
+    border-radius:50%;
+    box-shadow:0 0 0 3px var(--blue-dark);
+  }
+
+  .games{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+
+  .game{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    min-height:116px;
+    padding:20px 14px 15px;
+    background:var(--paper);
+    border:3px solid var(--ink);
+    box-shadow:5px 5px 0 var(--ink);
+    text-decoration:none;
+    color:var(--ink);
+    font-weight:800;
+    font-size:17px;
+    letter-spacing:-0.04em;
+    line-height:1.25;
+    word-break:keep-all;
+    transition:transform .06s ease, box-shadow .06s ease;
+  }
+  .game::before{
+    content:"";
+    position:absolute;
+    top:0;left:0;right:0;
+    height:9px;
+    background:var(--chip);
+  }
+  .game .ico{width:40px;height:30px;display:block;flex:none;}
+  .game:active{transform:translate(5px,5px);box-shadow:0 0 0 var(--ink);}
+  .game:focus-visible{outline:4px solid var(--blue);outline-offset:3px;}
+  .game[aria-disabled="true"]{opacity:.42;pointer-events:none;}
+
+  .game.blank{
+    background:transparent;
+    border-style:dashed;
+    border-color:#B4BCB4;
+    box-shadow:none;
+    pointer-events:none;
+  }
+  .game.blank::before{display:none;}
+
+  @media (prefers-reduced-motion:reduce){
+    .game{transition:none;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="brand">오락실</div>
+
+  <div class="stage" id="stage">
+    <div class="hole" id="hole"></div>
+    <div class="rim"></div>
+  </div>
+
+  <nav class="games" id="games"></nav>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ─────────────────────────────────────────────
+   게임 목록 — url 만 채우면 버튼이 살아납니다.
+   name 을 비우면 빈 칸으로 남습니다.
+   ───────────────────────────────────────────── */
+var ICONS = {
+  jine:
+    '<svg class="ico" viewBox="0 0 26 20" aria-hidden="true">' +
+      '<g stroke="#5e2618" stroke-width="1.5" stroke-linecap="round" fill="none">' +
+        '<path d="M3 12.5l-1.5 4M7 12.5l-1.5 4M11 12.5l-1.5 4M15 12.5l-1.5 4M19 12.5l-1.5 4"/>' +
+        '<path d="M23 7l2.4-2.6M23.4 10.6l2.2 2"/>' +
+      '</g>' +
+      '<g stroke="#5e2618" stroke-width="1.2">' +
+        '<circle cx="3.4" cy="10.4" r="2.5" fill="#a8452f"/>' +
+        '<circle cx="8" cy="10.4" r="2.7" fill="#c0563f"/>' +
+        '<circle cx="12.6" cy="10.4" r="2.7" fill="#a8452f"/>' +
+        '<circle cx="17.2" cy="10.2" r="2.8" fill="#c0563f"/>' +
+        '<circle cx="21.6" cy="9.8" r="3" fill="#cf6a4a"/>' +
+      '</g>' +
+    '</svg>',
+  cart:
+    '<svg class="ico" viewBox="0 0 32 24" aria-hidden="true">' +
+      '<g stroke="#1B2430" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none">' +
+        '<path d="M2 3h4l1.6 3.4"/>' +
+        '<path d="M7.6 6.4h22l-3.2 9H11.2z" fill="#FFE08A"/>' +
+        '<path d="M13.6 6.4l1.2 9M19.2 6.4l.4 9M24.8 6.4l-.4 9"/>' +
+        '<path d="M11.2 15.4l-1.4-4.2h19"/>' +
+      '</g>' +
+      '<circle cx="13.4" cy="19.6" r="2.4" fill="#1B2430"/>' +
+      '<circle cx="24" cy="19.6" r="2.4" fill="#1B2430"/>' +
+    '</svg>',
+  forklift:
+    '<svg class="ico" viewBox="0 0 32 24" aria-hidden="true">' +
+      '<g stroke="#1B2430" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none">' +
+        '<path d="M18.6 2.6v14M21.4 2.6v14"/>' +
+        '<path d="M18.6 15.4h9"/>' +
+        '<path d="M4 9h13v7H4z" fill="#F2A03C"/>' +
+        '<path d="M6 9V3h9v6"/>' +
+        '<path d="M5 3h11"/>' +
+      '</g>' +
+      '<circle cx="8" cy="18.4" r="3.1" fill="#1B2430"/>' +
+      '<circle cx="15.4" cy="19.2" r="2.3" fill="#1B2430"/>' +
+    '</svg>'
+};
+
+var GAMES = [
+  { name: '지네 못 걷기',    url: 'https://aaffffffffff123-lang.github.io/jine/', chip: '#C0563F', icon: ICONS.jine },
+  { name: '심야물류센터3층', url: '', chip: '#FFC400', icon: ICONS.cart },
+  { name: '지게차 연수원',   url: '', chip: '#F2600C', icon: ICONS.forklift },
+  { name: '',               url: '', chip: '',        icon: '' }
+];
+
+(function buildGames(){
+  var wrap = document.getElementById('games');
+  for (var i = 0; i < GAMES.length; i++) {
+    var g = GAMES[i];
+
+    if (!g.name) {
+      var blank = document.createElement('div');
+      blank.className = 'game blank';
+      wrap.appendChild(blank);
+      continue;
+    }
+
+    var a = document.createElement('a');
+    a.className = 'game';
+    a.style.setProperty('--chip', g.chip);
+    a.innerHTML = g.icon;
+    var label = document.createElement('span');
+    label.textContent = g.name;
+    a.appendChild(label);
+
+    if (g.url) {
+      a.href = g.url;
+      a.target = '_top';
+    } else {
+      a.setAttribute('aria-disabled', 'true');
+      a.setAttribute('tabindex', '-1');
+    }
+    wrap.appendChild(a);
+  }
+})();
+
+/* ─────────────────────────────────────────────
+   구멍 속 얼굴
+   ───────────────────────────────────────────── */
+(function faceScene(){
+  var stage = document.getElementById('stage');
+  var hole  = document.getElementById('hole');
+
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var hasWebGL = (function(){
+    try {
+      var c = document.createElement('canvas');
+      return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl')));
+    } catch (e) { return false; }
+  })();
+
+  if (!window.THREE || !hasWebGL) {
+    stage.style.cursor = 'default';
+    return; // 얼굴만 빠지고 버튼은 그대로 동작
+  }
+
+  var scene = new THREE.Scene();
+
+  var camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+  camera.position.set(0, 0.15, 7.4);
+  camera.lookAt(0, -0.05, 0);
+
+  var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(320, 320, false);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  hole.appendChild(renderer.domElement);
+
+  // 얼굴 밝기 — 이 숫자 하나만 올리고 내리면 됩니다 (1 = 지금)
+  var BRIGHT = 1.0;
+
+  scene.add(new THREE.HemisphereLight(0xf6f8f4, 0x9aa49e, 0.66 * BRIGHT));
+  var key = new THREE.DirectionalLight(0xfff4e6, 0.80 * BRIGHT);
+  key.position.set(2.4, 3.2, 4.0);
+  scene.add(key);
+  var fill = new THREE.DirectionalLight(0xffdcc0, 0.28 * BRIGHT);
+  fill.position.set(-3.0, 0.6, 1.4);
+  scene.add(fill);
+  var rimL = new THREE.DirectionalLight(0xb9cde8, 0.42 * BRIGHT);
+  rimL.position.set(-1.2, 1.4, -4.0);
+  scene.add(rimL);
+
+  var SKIN = new THREE.MeshStandardMaterial({ color: 0xEDBC97, roughness: 0.86, metalness: 0.0 });
+  var INK  = new THREE.MeshStandardMaterial({ color: 0x1B2430, roughness: 0.45, metalness: 0.0 });
+  var BLUSH= new THREE.MeshStandardMaterial({ color: 0xE8836F, roughness: 0.9, transparent: true, opacity: 0.55 });
+  var SORE = new THREE.MeshStandardMaterial({ color: 0xD9483A, roughness: 0.85, transparent: true, opacity: 0.62 });
+  var TEAR = new THREE.MeshStandardMaterial({ color: 0x8FC4E8, roughness: 0.18, metalness: 0.0, transparent: true, opacity: 0.9 });
+
+  var head = new THREE.Group();
+  head.position.y = -0.05;
+  scene.add(head);
+
+  // 두개골
+  var skull = new THREE.Mesh(new THREE.SphereGeometry(1, 56, 48), SKIN);
+  skull.scale.set(1, 1.07, 0.97);
+  head.add(skull);
+
+  // 턱
+  var jaw = new THREE.Mesh(new THREE.SphereGeometry(0.66, 40, 32), SKIN);
+  jaw.position.set(0, -0.56, 0.10);
+  jaw.scale.set(0.98, 0.86, 0.95);
+  head.add(jaw);
+
+  // 머리카락 — 직선 네 줄
+  var STRANDS = [-0.46, -0.16, 0.16, 0.46];
+  STRANDS.forEach(function (x) {
+    var strand = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.030, 0.66, 10), INK);
+    strand.position.set(x, 1.12, -0.04);
+    strand.rotation.z = -x * 0.62;
+    strand.rotation.x = -0.16;
+    head.add(strand);
+  });
+
+  // 귀
+  [-1, 1].forEach(function (s) {
+    var ear = new THREE.Mesh(new THREE.SphereGeometry(0.21, 24, 20), SKIN);
+    ear.position.set(0.97 * s, -0.06, 0.00);
+    ear.scale.set(0.38, 1.05, 0.72);
+    head.add(ear);
+  });
+
+  // 코
+  var nose = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 20), SKIN);
+  nose.position.set(0, -0.11, 0.93);
+  nose.scale.set(0.78, 0.92, 1.15);
+  head.add(nose);
+
+  // 평상시 얼굴
+  var calm = new THREE.Group();
+  head.add(calm);
+
+  [-1, 1].forEach(function (s) {
+    var eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 24, 20), INK);
+    eye.position.set(0.365 * s, 0.10, 0.855);
+    eye.scale.set(0.95, 1.18, 0.55);
+    calm.add(eye);
+
+    var brow = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.055, 0.07), INK);
+    brow.position.set(0.375 * s, 0.40, 0.86);
+    brow.rotation.z = -0.13 * s;
+    brow.rotation.x = -0.18;
+    calm.add(brow);
+  });
+
+  var smile = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.042, 12, 32, Math.PI), INK);
+  smile.position.set(0, -0.36, 0.88);
+  smile.rotation.z = Math.PI;
+  smile.rotation.x = -0.16;
+  calm.add(smile);
+
+  // 어지러운 얼굴
+  var dizzy = new THREE.Group();
+  dizzy.visible = false;
+  head.add(dizzy);
+
+  [-1, 1].forEach(function (s) {
+    for (var r = 0; r < 2; r++) {
+      var ring = new THREE.Mesh(new THREE.TorusGeometry(0.06 + r * 0.055, 0.022, 10, 28), INK);
+      ring.position.set(0.365 * s, 0.10, 0.86 - r * 0.005);
+      ring.rotation.x = -0.12;
+      dizzy.add(ring);
+    }
+    var cheek = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 16), BLUSH);
+    cheek.position.set(0.53 * s, -0.20, 0.76);
+    cheek.scale.set(1.0, 0.68, 0.28);
+    dizzy.add(cheek);
+
+    var browD = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.05, 0.07), INK);
+    browD.position.set(0.375 * s, 0.44, 0.85);
+    browD.rotation.z = 0.30 * s;
+    browD.rotation.x = -0.18;
+    dizzy.add(browD);
+  });
+
+  var mouthO = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 20), INK);
+  mouthO.position.set(0, -0.40, 0.86);
+  mouthO.scale.set(1.05, 0.85, 0.35);
+  dizzy.add(mouthO);
+
+  // 우는 얼굴
+  var cry = new THREE.Group();
+  cry.visible = false;
+  head.add(cry);
+
+  [-1, 1].forEach(function (s) {
+    // 질끈 감은 눈
+    var shut = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.038, 10, 26, Math.PI), INK);
+    shut.position.set(0.365 * s, 0.06, 0.855);
+    shut.rotation.x = -0.14;
+    cry.add(shut);
+
+    // 안쪽이 올라간 눈썹
+    var browC = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.055, 0.07), INK);
+    browC.position.set(0.375 * s, 0.42, 0.85);
+    browC.rotation.z = -0.34 * s;
+    browC.rotation.x = -0.18;
+    cry.add(browC);
+
+    // 얻어맞은 자국
+    var sore = new THREE.Mesh(new THREE.SphereGeometry(0.19, 20, 16), SORE);
+    sore.position.set(0.56 * s, -0.14, 0.74);
+    sore.scale.set(1.0, 0.72, 0.26);
+    cry.add(sore);
+  });
+
+  // 벌린 입
+  var wail = new THREE.Mesh(new THREE.SphereGeometry(0.19, 26, 22), INK);
+  wail.position.set(0, -0.44, 0.84);
+  wail.scale.set(1.0, 1.15, 0.35);
+  cry.add(wail);
+
+  // 눈물 — 눈꼬리에서 흘러내린다
+  var tears = new THREE.Group();
+  tears.visible = false;
+  head.add(tears);
+
+  var TEAR_N = 5;
+  var drops = [];
+  [-1, 1].forEach(function (s) {
+    for (var i = 0; i < TEAR_N; i++) {
+      var d = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 12), TEAR);
+      d.scale.set(1, 1.5, 0.8);
+      d.userData = { side: s, offset: i / TEAR_N };
+      tears.add(d);
+      drops.push(d);
+    }
+  });
+
+  // 목
+  var neck = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.52, 0.9, 28), SKIN);
+  neck.position.set(0, -1.32, -0.02);
+  head.add(neck);
+
+  /* 회전 */
+  var IDLE = 0.55;          // 기본 회전 속도(rad/s)
+  var TAU = 1.35;           // 감속 시정수(s)
+  var DIZZY_IN = 7.0;
+  var DIZZY_OUT = 3.0;
+  var CRY_TIME = 2.6;       // 우는 시간(s)
+  var HIT_TIME = 0.42;      // 맞고 휘청이는 시간(s)
+
+  var angle = 0;
+  var vel = reduced ? 0 : IDLE;
+  var dragging = false;
+  var pointerId = null;
+  var lastX = 0, lastT = 0;
+  var dragVel = 0;
+  var moved = 0, downT = 0;
+  var isDizzy = false;
+  var dizzyHold = 0;
+  var cryT = 0, hitT = 0;
+  var clock = 0;
+
+  function resize() {
+    var w = hole.clientWidth || 320;
+    renderer.setSize(w, w, false);
+    camera.aspect = 1;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function punch() {
+    cryT = CRY_TIME;
+    hitT = HIT_TIME;
+    isDizzy = false;
+    vel += (vel >= 0 ? 2.2 : -2.2);   // 맞은 김에 한 바퀴 더 돈다
+  }
+
+  stage.addEventListener('pointerdown', function (e) {
+    if (pointerId !== null) return;
+    pointerId = e.pointerId;
+    dragging = true;
+    dragVel = 0;
+    moved = 0;
+    downT = performance.now();
+    lastX = e.clientX;
+    lastT = downT;
+    stage.classList.add('dragging');
+    stage.setPointerCapture(e.pointerId);
+  });
+
+  stage.addEventListener('pointermove', function (e) {
+    if (!dragging || e.pointerId !== pointerId) return;
+    var now = performance.now();
+    var dx = e.clientX - lastX;
+    var dt = Math.max((now - lastT) / 1000, 1 / 240);
+    moved += Math.abs(dx);
+    angle += dx * 0.011;
+    dragVel = dragVel * 0.55 + (dx * 0.011 / dt) * 0.45;
+    lastX = e.clientX;
+    lastT = now;
+  });
+
+  function endDrag(e) {
+    if (e.pointerId !== pointerId) return;
+    dragging = false;
+    pointerId = null;
+    stage.classList.remove('dragging');
+    // 거의 안 움직이고 짧게 눌렀으면 때린 것으로 친다
+    if (moved < 9 && performance.now() - downT < 350) punch();
+    else vel = Math.max(-40, Math.min(40, dragVel));
+  }
+  stage.addEventListener('pointerup', endDrag);
+  stage.addEventListener('pointercancel', endDrag);
+
+  var prev = performance.now();
+
+  function frame(now) {
+    var dt = Math.min((now - prev) / 1000, 0.05);
+    prev = now;
+    clock += dt;
+
+    if (!dragging) {
+      var target = reduced ? 0 : IDLE;
+      vel = target + (vel - target) * Math.exp(-dt / TAU);
+      angle += vel * dt;
+    }
+
+    if (cryT > 0) cryT -= dt;
+    if (hitT > 0) hitT -= dt;
+    var crying = cryT > 0;
+
+    var speed = Math.abs(dragging ? dragVel : vel);
+    if (!crying) {
+      if (!isDizzy && speed > DIZZY_IN) { isDizzy = true; dizzyHold = 0.8; }
+      if (isDizzy) {
+        dizzyHold -= dt;
+        if (speed < DIZZY_OUT && dizzyHold <= 0) isDizzy = false;
+      }
+    }
+
+    calm.visible  = !crying && !isDizzy;
+    dizzy.visible = !crying && isDizzy;
+    cry.visible   = crying;
+    tears.visible = crying;
+
+    if (crying) {
+      var fade = Math.min(1, cryT / 0.6);
+      for (var i = 0; i < drops.length; i++) {
+        var d = drops[i];
+        var p = (clock * 0.85 + d.userData.offset) % 1;
+        d.position.set(
+          0.50 * d.userData.side + p * 0.05 * d.userData.side,
+          0.02 - p * 1.35,
+          0.82 - p * 0.20
+        );
+        var grow = Math.min(1, p * 5);
+        d.scale.set(grow, 1.5 * grow, 0.8 * grow);
+        d.material.opacity = 0.9 * fade;
+      }
+    }
+
+    head.rotation.y = angle;
+
+    if (hitT > 0) {
+      var k = hitT / HIT_TIME;
+      head.rotation.z = Math.sin(hitT * 48) * 0.30 * k;
+      head.position.x = Math.sin(hitT * 42) * 0.17 * k;
+      head.position.y = -0.05 + Math.sin(hitT * 36) * 0.07 * k;
+    } else if (crying) {
+      head.rotation.z = Math.sin(clock * 7.5) * 0.05;
+      head.position.x *= 0.85;
+      head.position.y = -0.05 - 0.05 + Math.abs(Math.sin(clock * 5.2)) * 0.05;
+    } else if (isDizzy) {
+      head.rotation.z = Math.sin(now / 90) * 0.075;
+      head.position.x *= 0.85;
+      head.position.y = -0.05 + Math.sin(now / 62) * 0.035;
+    } else {
+      head.rotation.z *= 0.86;
+      head.position.x *= 0.85;
+      head.position.y += (-0.05 - head.position.y) * 0.12;
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
