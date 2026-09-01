@@ -130,7 +130,6 @@
   <div id="gl"></div>
   <div id="fallzone"></div>
   <div id="splats"></div>
-  <button id="comicBtn" type="button" aria-label="원작 보기">?</button>
 
   <div id="topbar">
     <div class="pill" id="score"><span class="lbl">받은 문장</span><b id="scoreNum">0</b></div>
@@ -172,6 +171,7 @@
   <div class="btns">
     <button class="btn hot" id="ovAgain" type="button">다시</button>
     <button class="btn" id="ovRank" type="button">순위</button>
+        <button class="btn" id="ovComic" type="button">원작</button>
   </div>
 </div></div>
 
@@ -873,7 +873,9 @@ function blow(){
    그럴 때는 키패드 높이를 짐작해서 대신 씁니다. */
 var fullH = window.innerHeight;   // 키패드 없을 때의 높이
 var kbGuess = 0;                  // 알려주지 않을 때 쓰는 추정 높이
-var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+  var typedOnce = false;   // 물리 키보드로 치기 시작하면 참
+var isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints>0)
+              && window.matchMedia('(pointer:coarse)').matches;
 
 function viewH(){
   var vv=window.visualViewport;
@@ -891,11 +893,13 @@ function fitViewport(){
 /* 입력창을 누른 뒤에도 높이가 그대로면, 이 브라우저는 안 알려주는 것입니다.
    그때만 화면의 44% 를 키패드로 치고 판을 줄입니다. */
 function checkKeyboard(){
-  if(!isTouch) return;
+  if(!isTouch || MODE==='key') return;
   if(document.activeElement!==el.input){ 
     if(kbGuess){ kbGuess=0; fitViewport(); }
     return;
   }
+  if(typedOnce){ if(kbGuess){ kbGuess=0; fitViewport(); } return; }
+  
   if(fullH - viewH() < 110){
     var guess=Math.round(fullH*0.44);
     if(guess!==kbGuess){ kbGuess=guess; fitViewport(); }
@@ -1588,8 +1592,8 @@ function loop(now){
   if(S.raid&&boat){
     S.raidT+=dt;
     var k2=Math.min(1,S.raidT/2.4),ease=1-Math.pow(1-k2,3);
-    boat.position.x=36+(7-36)*ease;
-    boat.position.z=-50+(14+50)*ease;
+    boat.position.x=36+(2-36)*ease;
+    boat.position.z=-50+(6+50)*ease;
     boat.rotation.y=-0.5+0.35*ease;
     boat.position.y=Math.sin(S.t*2.2)*0.24;
     boat.rotation.z=Math.sin(S.t*1.7)*0.06;
@@ -1597,7 +1601,7 @@ function loop(now){
       pp.rotation.z=Math.sin(S.t*10+pp.userData.ph)*0.26;
       pp.rotation.y=Math.sin(S.t*4.5+ii)*0.34;
     });
-    if(S.raidT>2.2){
+    if(S.raidT>2.8){
       S.nextThrow-=dt;
       if(S.nextThrow<=0){
         throwRock(throwers[Math.floor(Math.random()*throwers.length)]);
@@ -1630,6 +1634,7 @@ function loop(now){
 /* ════════ 입력 ════════ */
 el.input.addEventListener('input',function(){
   unlock();
+    if(fullH - viewH() < 110){ typedOnce = true; if(kbGuess){ kbGuess=0; fitViewport(); } }
   if(S.dead) return;
   var matched=updateMatch();
   // 대본에서 벗어난 입력일 때만 악플을 본다
@@ -1692,11 +1697,11 @@ V.name.value = myName;
 
 /* 원작 4컷. 게임이 끝난 뒤에만 눌러볼 수 있습니다. */
 var COMIC_SRC = 'whale-4cut.jpg';
-var comicBtn = document.getElementById('comicBtn');
+var comicBtn = { style:{} };
 var comicV   = document.getElementById('comicV');
 document.getElementById('comicImg').src = COMIC_SRC;
 
-comicBtn.addEventListener('click', function(){
+document.getElementById('ovComic').addEventListener('click', function(){
   closeAll();
   comicV.classList.add('on');
 });
