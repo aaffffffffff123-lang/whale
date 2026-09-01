@@ -820,20 +820,51 @@ function blow(){
 }
 
 /* 폰 키패드는 화면을 줄이지 않고 위를 덮습니다.
-   브라우저가 알려주는 '보이는 영역' 높이를 받아서 그만큼만 씁니다. */
-function fitViewport(){
+   보통은 브라우저가 '보이는 영역' 높이를 알려주지만,
+   인스타·카톡 같은 앱 안의 브라우저는 그걸 안 알려주는 경우가 있습니다.
+   그럴 때는 키패드 높이를 짐작해서 대신 씁니다. */
+var fullH = window.innerHeight;   // 키패드 없을 때의 높이
+var kbGuess = 0;                  // 알려주지 않을 때 쓰는 추정 높이
+var isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+
+function viewH(){
   var vv=window.visualViewport;
-  var h=vv ? vv.height : window.innerHeight;
-  document.documentElement.style.setProperty('--vh', Math.round(h)+'px');
-  // 키패드가 올라오면 페이지가 밀려 올라가 있을 수 있어 되돌립니다
-  if(vv && vv.offsetTop) window.scrollTo(0,0);
+  return vv ? vv.height : window.innerHeight;
+}
+function fitViewport(){
+  var h=viewH();
+  if(kbGuess) h=Math.min(h, fullH-kbGuess);
+  h=Math.max(240, Math.round(h));
+  document.documentElement.style.setProperty('--vh', h+'px');
+  var vv=window.visualViewport;
+  if((vv && vv.offsetTop) || window.pageYOffset) window.scrollTo(0,0);
   onResize();
 }
+/* 입력창을 누른 뒤에도 높이가 그대로면, 이 브라우저는 안 알려주는 것입니다.
+   그때만 화면의 44% 를 키패드로 치고 판을 줄입니다. */
+function checkKeyboard(){
+  if(!isTouch) return;
+  if(document.activeElement!==el.input){ 
+    if(kbGuess){ kbGuess=0; fitViewport(); }
+    return;
+  }
+  if(fullH - viewH() < 110){
+    var guess=Math.round(fullH*0.44);
+    if(guess!==kbGuess){ kbGuess=guess; fitViewport(); }
+  } else if(kbGuess){
+    kbGuess=0; fitViewport();
+  }
+}
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize', fitViewport);
+  window.visualViewport.addEventListener('resize', function(){
+    if(document.activeElement!==el.input) fullH=Math.max(fullH, viewH());
+    kbGuess=0; fitViewport();
+  });
   window.visualViewport.addEventListener('scroll', fitViewport);
 }
-window.addEventListener('orientationchange', function(){ setTimeout(fitViewport,300); });
+window.addEventListener('orientationchange', function(){
+  setTimeout(function(){ kbGuess=0; fullH=window.innerHeight; fitViewport(); },350);
+});
 
 function onResize(){
   var w=host.clientWidth,h=host.clientHeight;
@@ -842,7 +873,10 @@ function onResize(){
   camera.aspect=w/h; camera.updateProjectionMatrix();
   layoutFallzone();
 }
-window.addEventListener('resize',fitViewport);
+window.addEventListener('resize',function(){
+  if(document.activeElement!==el.input) fullH=Math.max(fullH, window.innerHeight);
+  fitViewport();
+});
 
 
 /* ════════ 기술 ════════ */
@@ -1526,9 +1560,14 @@ el.input.addEventListener('input',function(){
   }
 });
 el.input.addEventListener('focus',function(){
-  setTimeout(fitViewport,120); setTimeout(fitViewport,420);
+  setTimeout(fitViewport,120);
+  setTimeout(checkKeyboard,450);
+  setTimeout(checkKeyboard,900);
 });
-el.input.addEventListener('blur',function(){ setTimeout(fitViewport,120); });
+el.input.addEventListener('blur',function(){
+  kbGuess=0;
+  setTimeout(function(){ fullH=Math.max(fullH, viewH()); fitViewport(); },150);
+});
 el.input.addEventListener('keydown',function(ev){
   if(ev.key==='Enter'){ ev.preventDefault(); el.input.value=''; updateMatch(); }
   if(ev.key==='Escape'){ el.input.value=''; updateMatch(); }
@@ -1708,7 +1747,8 @@ el.mute.addEventListener('click',function(){
   el.mute.textContent=muted?'🔇':'🔊';
 });
 
-init3D(); fitViewport(); reset(); requestAnimationFrame(loop);
+init3D(); fullH=Math.max(window.innerHeight, viewH()); fitViewport();
+reset(); requestAnimationFrame(loop);
 
 })();
 </script>
