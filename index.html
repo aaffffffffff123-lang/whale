@@ -873,7 +873,7 @@ function blow(){
    그럴 때는 키패드 높이를 짐작해서 대신 씁니다. */
 var fullH = window.innerHeight;   // 키패드 없을 때의 높이
 var kbGuess = 0;                  // 알려주지 않을 때 쓰는 추정 높이
-  var typedOnce = false;   // 물리 키보드로 치기 시작하면 참
+  
 var isTouch = (('ontouchstart' in window) || navigator.maxTouchPoints>0)
               && window.matchMedia('(pointer:coarse)').matches;
 
@@ -898,7 +898,7 @@ function checkKeyboard(){
     if(kbGuess){ kbGuess=0; fitViewport(); }
     return;
   }
-  if(typedOnce){ if(kbGuess){ kbGuess=0; fitViewport(); } return; }
+ 
   
   if(fullH - viewH() < 110){
     var guess=Math.round(fullH*0.44);
@@ -1634,7 +1634,7 @@ function loop(now){
 /* ════════ 입력 ════════ */
 el.input.addEventListener('input',function(){
   unlock();
-    if(fullH - viewH() < 110){ typedOnce = true; if(kbGuess){ kbGuess=0; fitViewport(); } }
+    
   if(S.dead) return;
   var matched=updateMatch();
   // 대본에서 벗어난 입력일 때만 악플을 본다
