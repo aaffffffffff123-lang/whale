@@ -235,21 +235,21 @@ var PLACARDS = ["", "", ""];
 var DIFF = {
   phone: { FALL_BASE:8.0, FALL_PER_CHAR:0.95, FALL_TIGHTEN:0.85,
            MAX_ON_EARLY:2, MAX_ON_LATE:6, GAP_SLOW:5.0, GAP_FAST:2.6, RAMP:300,
-           RATE:0.36 },
+           RATE:0.12, GAIN:2.2 },
   key:   { FALL_BASE:5.2, FALL_PER_CHAR:0.60, FALL_TIGHTEN:0.70,
            MAX_ON_EARLY:3, MAX_ON_LATE:10, GAP_SLOW:3.2, GAP_FAST:1.2, RAMP:150,
-           RATE:0.28 }
+           RATE:0.13, GAIN:1.2 }
 };
 var MODE = 'phone';
 var D = DIFF.phone;
 
-/* 고래가 지쳐 쓰러지기까지.
-   위 DIFF 의 RATE 를 올리면 빨리 끝나고, 내리면 오래 갑니다. 여기만 만지면 됩니다.
-   길이는 값에 반비례합니다. 반으로 줄이면 두 배로 길어집니다.
-     0.72 → 1분  ·  0.36 → 2분  ·  0.24 → 3분   ← 폰 기준
-   키보드는 문장을 훨씬 빨리 넣으니 값을 낮춰 두 모드의 길이를 맞췄습니다.
-   지칠수록 소모가 커지므로 뒤로 갈수록 급하게 찹니다. */
-var GAUGE_DECAY = 0.13;
+/* 판 길이를 정하는 값 둘.
+   GAIN — 문장 하나를 받을 때마다 게이지가 바로 오르는 양. 이게 판 길이를 정합니다.
+          올리면 짧아지고 내리면 길어집니다. 폰 2.2 면 폰으로 쳐서 2~3분입니다.
+   RATE — 고래가 춤추는 동안 추가로 차는 양. 콤보가 높아 큰 기술이 나오면 더 찹니다.
+   회복은 개념만 남겨둔 값입니다. 게이지 50 에서 손을 놓으면 비우는 데 40분 걸립니다.
+   아무것도 안 치면 0 에서 안 움직이므로 고래는 죽지 않습니다. */
+var GAUGE_DECAY = 0.02;
 
 
 /* ════════ 오디오 ════════ */
@@ -1297,6 +1297,9 @@ function complete(f){
   falls.splice(falls.indexOf(f),1);
   el.input.value=''; el.input.classList.remove('nomatch');
 
+  // 받은 만큼 바로 찬다. 춤을 얼마나 크게 추든, 콤보가 끊겼든 상관없이
+  // 한 장은 한 몫이다. 이게 없으면 놓치기 시작한 판이 영영 안 끝난다.
+  S.gauge=Math.min(100,S.gauge+D.GAIN);
   S.score++; S.combo++;
   if(S.combo>S.best) S.best=S.combo;
   if(S.combo>=2) sfxBlip(S.combo);
