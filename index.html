@@ -2119,6 +2119,11 @@ function rankFetch(mode, cb){
 
 function submitRun(){
   if(!rankOn() || !LAST || !myName || S.raid) return;
+  // 죽는 순간 한 번, 결과창에서 다시·순위를 누를 때 또 한 번 불립니다.
+  // 이름을 나중에 적는 흐름 때문에 두 번 다 필요하지만, 같은 이름으로 두 번 보내면 안 됩니다.
+  if(LAST.sentAs === myName) return;
+  LAST.sentAs = myName;
+  var run = LAST;
   try{
     fetch(RANK_URL, {
       method:'POST',
@@ -2126,8 +2131,8 @@ function submitRun(){
       body: JSON.stringify({ game:'whale', id:myId, name:myName, mode:LAST.mode,
                              time:LAST.time, score:LAST.score, best:LAST.best }),
       keepalive:true
-    }).catch(function(){});
-  }catch(e){}
+    }).catch(function(){ run.sentAs=null; });  // 못 보냈으면 결과창에서 다시 눌러 재시도
+  }catch(e){ run.sentAs=null; }
 }
 
 function readName(){
