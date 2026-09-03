@@ -101,6 +101,7 @@
   #input:focus{outline:none;border-color:var(--amber-dk);}
   #input.nomatch{border-color:#c0392b;}
   #input:disabled{background:#eef2f4;}
+  #input[readonly]{background:#eef2f4;caret-color:transparent;}
   #clear{font-family:inherit;font-size:15px;font-weight:800;color:#fff;background:var(--line);
     border:3px solid var(--line);border-radius:14px;padding:12px 16px;cursor:pointer;
     box-shadow:0 3px 0 rgba(36,89,111,.35);}
@@ -897,6 +898,25 @@ function buildWhale(){
     e.position.set(0.295*s,0.04,-1.30); whaleBody.add(e);
   });
 
+  /* 입. 클로즈업까지 가는데 눈 두 개만 있으면 얼굴이 휑합니다.
+     다문 선이 아니라 살짝 벌어진 채로 굳은 모양입니다. */
+  // 입은 머리 곡면에 얹습니다. 평평한 판을 붙이면 나무토막이 박힌 것처럼 보입니다.
+  whaleBody.add(new THREE.Mesh(mouthPatch(0.004,0.83,0.30,0.45),
+    new THREE.MeshBasicMaterial({color:0xc9e0ec})));          // 입술 테두리
+  whaleBody.add(new THREE.Mesh(mouthPatch(0.009,0.78,0.22,0.45),
+    new THREE.MeshBasicMaterial({color:0x061119})));          // 벌어진 안쪽
+
+  /* 이마에 붙은 라벨지. 멀리서는 흰 점이라 안 읽히고,
+     죽은 뒤 카메라가 들어와야 글씨가 보입니다. */
+  label=new THREE.Mesh(
+    new THREE.PlaneGeometry(0.60,0.26),
+    new THREE.MeshBasicMaterial({map:makeLabelTex(),transparent:true,
+      side:THREE.DoubleSide,depthWrite:true}));
+  label.position.set(0.03,0.40,-1.28);
+  label.rotation.set(-Math.PI/2-0.34, 0.15, 0);
+  LBL_HOME={p:label.position.clone(), q:label.quaternion.clone()};
+  whaleBody.add(label);
+
   var finMat=new THREE.MeshPhongMaterial({color:0x36627e,shininess:34});
   var finG=new THREE.SphereGeometry(1,18,12); finG.scale(0.09,0.26,0.60);
   [-1,1].forEach(function(s){
@@ -927,6 +947,68 @@ function buildWhale(){
   fluke.position.set(0,0,0.32); fluke.scale.set(0.80,1,0.80);
   tailPivot.add(fluke); whaleBody.add(tailPivot);
   whale.scale.setScalar(2.0);
+}
+
+/* 견출지에 매직으로 쓴 글씨. 반듯하면 인쇄물로 보여서 조금씩 비뚤게 씁니다. */
+/* 머리 표면 위의 한 점. 몸통을 만들 때 쓴 것과 같은 식이라 정확히 곡면에 붙습니다.
+   a 는 좌우, b 는 아래로 내려간 각도, off 는 표면에서 띄우는 거리입니다. */
+function headSurf(a,b,off){
+  var dx=Math.sin(a)*Math.cos(b), dy=-Math.sin(b), dz=-Math.cos(a)*Math.cos(b);
+  var t=(dz+1)/2, r;
+  if(t<0.16) r=0.70+0.30*(t/0.16);
+  else r=1-Math.pow((t-0.16)/0.84,1.9)*0.94;
+  var px=dx*r*0.62, py=dy*r*0.54, pz=dz*1.85;
+  var nx=px/(0.62*0.62), ny=py/(0.54*0.54), nz=pz/(1.85*1.85);
+  var nl=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+  return [px+nx/nl*off, py+ny/nl*off, pz+nz/nl*off];
+}
+
+/* 입 모양. 가운데가 가장 크게 벌어지고 입꼬리로 갈수록 닫힙니다. */
+function mouthPatch(off,W,H,mid){
+  var NA=30,NB=10,pos=[],idx=[],i,j;
+  for(i=0;i<=NA;i++){
+    var u=-1+2*i/NA, a=u*W;
+    var half=H*Math.sqrt(Math.max(0,1-u*u));
+    var bm=mid+0.17*u*u;                         // 입꼬리가 조금 내려갑니다
+    for(j=0;j<=NB;j++){
+      var v=-1+2*j/NB;
+      var q=headSurf(a,bm+v*half,off);
+      pos.push(q[0],q[1],q[2]);
+    }
+  }
+  for(i=0;i<NA;i++) for(j=0;j<NB;j++){
+    var A=i*(NB+1)+j, B=A+NB+1;
+    idx.push(A,B,A+1, A+1,B,B+1);
+  }
+  var g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+function makeLabelTex(){
+  var cv=document.createElement('canvas'); cv.width=512; cv.height=222;
+  var c=cv.getContext('2d');
+  c.fillStyle='#fffef8'; c.fillRect(0,0,512,222);
+  var g=c.createLinearGradient(0,0,0,222);
+  g.addColorStop(0,'rgba(0,0,0,0.05)'); g.addColorStop(0.35,'rgba(0,0,0,0)');
+  g.addColorStop(1,'rgba(0,0,0,0.09)');
+  c.fillStyle=g; c.fillRect(0,0,512,222);
+  c.strokeStyle='rgba(70,90,100,0.35)'; c.lineWidth=6; c.strokeRect(3,3,506,216);
+  c.fillStyle='#0c1a22'; c.strokeStyle='#0c1a22'; c.lineWidth=7; c.lineJoin='round';
+  c.textAlign='center'; c.textBaseline='middle';
+  var txt='칭찬 고래';
+  c.save(); c.translate(256,116); c.rotate(-0.035);
+  c.font='bold 132px "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+  for(var i=0;i<txt.length;i++){
+    var w=c.measureText(txt).width, cw=c.measureText(txt[i]).width;
+    var x=-w/2, k;
+    for(k=0;k<i;k++) x+=c.measureText(txt[k]).width;
+    c.save(); c.translate(x+cw/2, (i%2?4:-3)); c.rotate((i%2?0.03:-0.045));
+    c.strokeText(txt[i],0,0); c.fillText(txt[i],0,0); c.restore();
+  }
+  c.restore();
+  var t=new THREE.CanvasTexture(cv); t.anisotropy=4; return t;
 }
 
 function buildSplash(){
@@ -1434,22 +1516,35 @@ function hpre(target, v){
 }
 
 var SORTED=null, recent=[], falls=[], deadPile=[], S;
+var label=null, LBL_HOME=null, labelOff=0;
+// 떨어진 라벨이 물 위에 자리잡는 지점
+var LBL_P=new THREE.Vector3(-0.10,0.30,-3.72);
+// 수면에 완전히 눕히면 글씨가 눌려 보입니다. 카메라 쪽으로 조금 세웁니다.
+var LBL_Q=new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2-0.62,0.44,0,'XYZ'));
+function ease01(x){ x=x<0?0:(x>1?1:x); return x*x*(3-2*x); }
 
 function reset(){
   clearTimers();
   S={gauge:0, score:0, combo:0, best:0, dead:false, raid:0, raidT:0, nextThrow:0,
      queue:[], cur:null, curT:0, o:null,
      spawnT:0.6, t:0, run:0, yaw:0, roll:0, flip:0, swim:0,
-     nextBlow:5, wash:0, pantT:0,
+     nextBlow:5, wash:0, pantT:0, deadT:0,
      comboT:0, comboMax:1, fanfare:0};
   EXH=0; FEVER=0; hitstop=0;
+  if(label && LBL_HOME){
+    labelOff=0;
+    if(label.parent!==whaleBody) whaleBody.add(label);
+    label.position.copy(LBL_HOME.p); label.quaternion.copy(LBL_HOME.q);
+    label.scale.setScalar(1);
+  }
   el.combo.classList.remove('low','punch');
   el.glow.style.opacity='0';
   if(whaleMat) whaleMat.emissive.setRGB(0,0,0);
   falls.forEach(function(f){ f.el.remove(); }); falls=[];
   deadPile.forEach(function(g){ g.el.remove(); }); deadPile=[];
   recent=[];
-  el.input.disabled=false; el.input.value=''; el.input.classList.remove('nomatch');
+  el.input.disabled=false; el.input.readOnly=false;
+  el.input.value=''; el.input.classList.remove('nomatch');
   el.reset.classList.remove('hot');
   el.combo.style.opacity='0';
   if(boat){ scene.remove(boat); boat=null; throwers.length=0; }
@@ -1701,21 +1796,29 @@ function die(){
   S.dead=true;
   LAST={ time: Math.round(S.run*10)/10, score: S.score, best: S.best, mode: MODE };
   submitRun();
-  later(showOver, 3400);
+  // 넘길 수 없습니다. 끝까지 보게 두는 게 이 게임의 요점입니다.
+  later(showOver, 16600);
   S.queue.length=0; S.cur=null; S.combo=0; S.comboT=0; S.fanfare=0; FEVER=0;
-  el.input.value=''; el.input.disabled=true;
+  el.input.value='';
+  /* disabled 로 만들면 포커스가 문서 몸통으로 빠집니다.
+     그 뒤에 친 백스페이스가 브라우저의 뒤로가기로 먹혔습니다.
+     읽기전용으로 두고 포커스를 잡고 있으면 글자도 안 들어가고 페이지도 안 넘어갑니다. */
+  el.input.readOnly=true;
+  if('ontouchstart' in window) el.input.blur(); else el.input.focus();
   el.input.classList.remove('nomatch');
   falls.forEach(function(f){ f.el.classList.remove('lock'); f.el.textContent=f.text; });
   sfxCall(300,3.6,0.16,0.34);
   later(function(){ sfxSplash(2.2,false); },320);
-  later(function(){ el.reset.classList.add('hot'); },2800);
+  // 정적 중에 버튼이 먼저 빛나면 시선을 뺏겨서, 결과창과 같이 켭니다.
+  later(function(){ el.reset.classList.add('hot'); },16400);
   paint();
 }
 
 function startRaid(){
   S.raid=1; S.raidT=0; S.nextThrow=2.5; S.dead=true;
   S.queue.length=0; S.cur=null; S.combo=0; S.comboT=0; S.fanfare=0; FEVER=0;
-  el.input.disabled=true;
+  el.input.readOnly=true;
+  if('ontouchstart' in window) el.input.blur(); else el.input.focus();
   el.glow.style.opacity='0';
   if(whaleMat) whaleMat.emissive.setRGB(0,0,0);
   if(!boat) boat=buildBoat();
@@ -1849,7 +1952,21 @@ function loop(now){
   if(S.dead && !S.raid){
     if(whaleMat) whaleMat.emissive.setRGB(0,0,0);
     el.glow.style.opacity='0';
+    S.deadT+=dt;
     S.wash=Math.min(1,S.wash+dt*0.10);
+    if(label){
+      if(!labelOff && S.deadT>2.1){
+        labelOff=1; scene.attach(label);
+        label.userData.p=label.position.clone();
+        label.userData.q=label.quaternion.clone();
+      }
+      if(labelOff){
+        var lp=ease01((S.deadT-2.1)/3.6);
+        label.position.lerpVectors(label.userData.p,LBL_P,lp);
+        label.position.y+=Math.sin(S.t*0.55)*0.05*lp;    // 파도에 가끔 씻길 정도만
+        label.quaternion.copy(label.userData.q).slerp(LBL_Q,lp);
+      }
+    }
     scene.background.copy(SKY_LIVE).lerp(SKY_DEAD,S.wash);
     scene.fog.color.copy(SKY_LIVE).lerp(SKY_DEAD,S.wash);
     scene.fog.near=60-S.wash*46;
@@ -1880,8 +1997,8 @@ function loop(now){
     whaleBody.rotation.z*=(1-Math.min(1,dt*3));
     tailPivot.rotation.x*=(1-Math.min(1,dt*3));
   } else if(S.dead){
-    S.flip+=(Math.PI-S.flip)*Math.min(1,dt*0.85);
-    whale.position.y+=(-0.25-whale.position.y)*Math.min(1,dt*0.7);
+    S.flip+=(2.705-S.flip)*Math.min(1,dt*0.85);   // 155도. 삐뚤게 굳은 쪽이 더 죽어 보입니다
+    whale.position.y+=(0.12-whale.position.y)*Math.min(1,dt*0.7);
     whale.position.x+=(0-whale.position.x)*Math.min(1,dt*0.7);
     whale.rotation.y+=(0-whale.rotation.y)*Math.min(1,dt*0.7);
     whale.rotation.z+=(0-whale.rotation.z)*Math.min(1,dt*0.7);
@@ -1989,9 +2106,27 @@ function loop(now){
   var sk=shake*shake;                       // 초반이 세고 꼬리가 짧게 빠집니다
   var sx=(Math.random()-0.5)*sk*3.6, sy=(Math.random()-0.5)*sk*3.6;
   var wy=Math.max(0,whale.position.y);
-  camera.position.set(sx,8.5+wy*0.30+sy,34-sk*2.2);
+  var camX=sx, camY=8.5+wy*0.30+sy, camZ=34-sk*2.2;
+  var aimX=whale.position.x*0.55+sx*0.4, aimY=2.5+wy*0.42, aimZ=0;
+  if(S.deadT>0){
+    // 1.5초는 그대로 두고 봅니다. 그 뒤 6초에 걸쳐 앞으로 돌아 들어갑니다.
+    var cp=ease01((S.deadT-1.5)/6.0);
+    var hp=ease01((S.deadT-7.5)/6.8);            // 붙은 뒤에도 아주 천천히 더 밀고 들어갑니다
+    var arc=cp*Math.PI*0.92;                     // 꼬리 쪽에서 얼굴 쪽으로 돌아 나갑니다
+    // 세로 화면은 폭이 좁아서 같은 거리면 머리와 라벨이 잘립니다.
+    var ar=camera.aspect||1;
+    var endR=5.3+(ar<1?Math.min(2.6,(1/ar-1)*2.5):0);
+    var rad=34+(endR-34)*cp-hp*0.42;
+    camX=sx+Math.sin(arc)*rad*0.52;
+    camY=(8.5+wy*0.30+sy)+((1.05-hp*0.12)-(8.5+wy*0.30+sy))*cp;
+    camZ=Math.cos(arc)*rad-sk*2.2*(1-cp);
+    aimX=aimX*(1-cp)+(-0.08)*cp;
+    aimY=aimY*(1-cp)+0.30*cp;
+    aimZ=aimZ*(1-cp)+(-2.90)*cp;
+  }
+  camera.position.set(camX,camY,camZ);
   camera.up.set(Math.sin(S.t*31)*sk*0.05,1,0);
-  camera.lookAt(whale.position.x*0.55+sx*0.4,2.5+wy*0.42,0);
+  camera.lookAt(aimX,aimY,aimZ);
 
   renderer.render(scene,camera);
   requestAnimationFrame(loop);
@@ -1999,6 +2134,20 @@ function loop(now){
 
 
 /* ════════ 입력 ════════ */
+/* 판이 도는 동안에는 브라우저 쪽 단축키를 막습니다.
+   포커스가 잠깐 어긋난 사이에 백스페이스나 알트+화살표가 뒤로가기로 먹히면
+   판이 통째로 날아갑니다. 스페이스·화살표는 화면이 밀리는 것을 막는 것입니다. */
+var NAVKEYS={Backspace:1,' ':1,Spacebar:1,ArrowUp:1,ArrowDown:1,
+             PageUp:1,PageDown:1,Home:1,End:1};
+window.addEventListener('keydown',function(ev){
+  if(!started) return;
+  var t=ev.target;
+  if(t && (t.tagName==='BUTTON'||t.tagName==='TEXTAREA'||t.tagName==='A')) return;
+  if(t && t.tagName==='INPUT' && !t.readOnly) return;
+  if(ev.altKey && (ev.key==='ArrowLeft'||ev.key==='ArrowRight')){ ev.preventDefault(); return; }
+  if(ev.ctrlKey||ev.metaKey) return;
+  if(NAVKEYS[ev.key]) ev.preventDefault();
+},true);
 el.input.addEventListener('input',function(){
   unlock();
     
