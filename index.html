@@ -395,6 +395,7 @@ void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 view=normalize(uEy
     }
     function updateGuests(){
         const p=S.pose,u=p.actU||0,active=p.act==='SYNCHRO'&&S.phase==='play';
+        applyCostume(active&&u>.035&&u<.965);
         for(let i=0;i<guests.length;i++){
             const g=guests[i],side=i<2?-1:1,index=[-2,-1,1,2][i];g.root.visible=active&&u>.025&&u<.99;
             if(!g.root.visible)continue;
@@ -1081,6 +1082,58 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
     cane.add(new Node(cylinder(.044,2.5,12),caneMat)).p=[0,-2.5,0];
     const hook=[];for(let i=0;i<=22;i++){const a=mix(0,PI*1.3,i/22);hook.push([.18-.18*Math.cos(a),.18*Math.sin(a),0]);}
     cane.add(new Node(tube(hook,.052,8),caneGold));ball(cane,[0,-2.48,0],[.064,.08,.064],caneGold,true);cane.visible=false;
+    /* ── 군무 의상. 죽인 고래가 쌓일수록 다섯 마리가 계속 껴입다가, 한 바퀴 돌면 전부 벗는다. ── */
+    const tieMat=mat([.88,.10,.17],{gloss:58,spec:.44}),lensMat=mat([.05,.06,.09],{gloss:130,spec:.92}),
+          helmetMat=mat([1,.79,.10],{gloss:56,spec:.42}),tutuMat=mat([1,.56,.78],{gloss:28,spec:.22}),
+          sashMat=mat([.90,.14,.22],{gloss:44,spec:.32}),sashWhite=mat([1,1,.97],{gloss:44,spec:.32}),
+          leiMats=[[.98,.32,.36],[1,.84,.24],[.42,.80,1],[.72,.46,.96],[1,.98,.92]].map(c=>mat(c,{gloss:40,spec:.3}));
+    function makeCostumeCane(parent,side){
+        const n=parent.add(new Node());n.p=[side*1.70,-.13,.84];n.r=[-PI/2,0,side*.20];
+        n.add(new Node(cylinder(.046,1.95,10),caneMat));
+        const hk=[];for(let i=0;i<=20;i++){const a=mix(0,PI*1.28,i/20);hk.push([.19-.19*Math.cos(a),1.95+.19*Math.sin(a),0]);}
+        n.add(new Node(tube(hk,.050,8),caneGold));
+        ball(n,[0,-.02,0],[.062,.05,.062],caneGold,true);
+        return n;
+    }
+    function makeCostume(host,finPivot,finSide){
+        const c={};
+        c.hat=makeHat(host);c.hat.p=[0,-.09,-2.84];c.hat.r=[-PI/2,0,0];
+        const helm=host.add(new Node());helm.p=[0,-.09,-2.88];helm.r=[-PI/2,0,0];
+        ball(helm,[0,.17,0],[.53,.47,.47],helmetMat);
+        ball(helm,[0,.05,0],[.64,.055,.61],helmetMat);
+        ball(helm,[0,.33,0],[.09,.13,.36],helmetMat);
+        c.helmet=helm;
+        const tie=host.add(new Node());tie.p=surface(-1.62,-PI/2,.10);tie.r=[-.60,0,0];
+        ball(tie,[-.28,0,0],[.28,.21,.11],tieMat);ball(tie,[.28,0,0],[.28,.21,.11],tieMat);
+        ball(tie,[0,0,.03],[.12,.13,.11],tieMat);
+        c.tie=tie;
+        const shade=host.add(new Node());
+        for(const s of [-1,1]){const q=surface(-2.32,-PI/2+s*.36,.085),b=ball(shade,q,[.30,.20,.13],lensMat);b.r=[0,0,s*.22];}
+        ball(shade,surface(-2.30,-PI/2,.105),[.10,.055,.07],lensMat,true);
+        for(const s of [-1,1])ball(shade,surface(-2.16,-PI/2+s*.80,.075),[.07,.05,.13],lensMat,true);
+        c.shade=shade;
+        const lei=host.add(new Node());
+        for(let i=0;i<16;i++)ball(lei,surface(-1.08,i/16*TAU,.085),[.12,.12,.12],leiMats[i%5],true);
+        c.lei=lei;
+        const sash=host.add(new Node());
+        for(let i=0;i<=24;i++){const t=i/24,q=surface(mix(-1.70,1.50,t),-PI/2+mix(1.02,-1.02,t),.10);
+            ball(sash,q,[.19,.19,.19],i%6===3?sashWhite:sashMat,true);}
+        c.sash=sash;
+        const tutu=host.add(new Node());
+        for(let i=0;i<20;i++){const a=i/20*TAU,b=ball(tutu,surface(.85,a,.32),[.36,.36,.11],tutuMat);b.r=[0,0,a];}
+        c.tutu=tutu;
+        c.cane=makeCostumeCane(finPivot,finSide);
+        for(const k of Object.keys(c))c[k].visible=false;
+        return c;
+    }
+    const COSTUME_SETS=[[],['hat'],['hat','cane'],['hat','cane','tie'],['hat','cane','tie','shade'],
+        ['hat','cane','tie','shade','lei'],['hat','cane','tie','shade','lei','sash'],
+        ['helmet','cane','tie','shade','lei','sash'],['helmet','cane','tie','shade','lei','sash','tutu']];
+    const costumes=[makeCostume(body,fins[1].pivot,fins[1].side)].concat(guests.map(g=>makeCostume(g.body,g.fins[1].pivot,g.fins[1].side)));
+    function applyCostume(on){
+        const wear=on?COSTUME_SETS[RUN.whales%COSTUME_SETS.length]:[];
+        for(const c of costumes)for(const k of Object.keys(c))c[k].visible=wear.includes(k);
+    }
     const microphone=ROOT.add(new Node()),micBlack=mat([.035,.047,.071],{gloss:44,spec:.30}),silver=mat([.61,.70,.73],{gloss:110,spec:.8});
     microphone.add(new Node(cylinder(.072,.41,16),micBlack)).p=[0,-.25,0];
     ball(microphone,[0,.22,0],[.145,.19,.145],silver);
@@ -1562,7 +1615,13 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
     const PROGRAM=DANCE_CATALOG.map(a=>a.type);
     const SHOW_SECONDS=DANCE_CATALOG.reduce((n,a)=>n+a.seconds,0); // informational only, never a trigger
     const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+    // 마지막 한 곡은 언제나 다섯 마리 군무. 의상만 판마다 달라진다.
     function buildDeck(){
+        const d=buildBaseDeck().filter(t=>t!=='SYNCHRO');
+        d.push('SYNCHRO');
+        return d;
+    }
+    function buildBaseDeck(){
         const used=new Set(),out=[];
         function pick(pool){let fresh=pool.filter(x=>!used.has(x)&&!RUN.seen.includes(x));if(!fresh.length)fresh=pool.filter(x=>!used.has(x));if(!fresh.length)return;
             const t=fresh[Math.floor(Math.random()*fresh.length)];used.add(t);out.push(t);}
