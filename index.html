@@ -58,7 +58,7 @@ h1 strong{display:block;width:max-content;margin:3px auto 0;color:#ffd268;font-s
 #cheer.pop{animation:cheer .95s both}@keyframes cheer{0%{opacity:0;transform:translate(-50%,-35%) scale(.7) rotate(-7deg)}16%{opacity:1;transform:translate(-50%,-60%) scale(1.18) rotate(-4deg)}34%{transform:translate(-50%,-50%) scale(1) rotate(-4deg)}72%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(.96)}}
 #flash{position:absolute;inset:0;z-index:9;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 58%,#fffbe4b0,#fff4 30%,#fff0 65%)}
 #lens{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:9}.lensdrop{position:absolute;width:13px;height:20px;border-radius:55% 45% 47% 53%;background:linear-gradient(135deg,#fffa,#ffffff00 45%,#80cbe04a);border:1px solid #fff6;box-shadow:inset 1px 2px 2px #fff8;animation:lens 1s ease-in forwards}@keyframes lens{0%{opacity:0;transform:scale(.4)}12%{opacity:.85;transform:scale(1)}100%{opacity:0;transform:translateY(50px) scale(.85)}}
-#endActions{position:absolute;left:14px;right:14px;bottom:calc(22px + var(--safeB));z-index:18;text-align:center;opacity:0;visibility:hidden;transition:opacity 1.2s,visibility 1.2s}#resultCard{max-width:420px;margin:0 auto;padding:18px 18px 15px;border-radius:28px;background:linear-gradient(180deg,#fffcf3f0,#f5ffffef);border:1px solid #ffffffd9;box-shadow:0 18px 50px #214d5b21,0 4px 0 #ffffffb5;backdrop-filter:blur(8px)}#resultCard .result-kicker{display:inline-block;padding:6px 11px;border-radius:999px;background:#e8f7f7;color:#4d7b86;font-size:10px;font-weight:900;letter-spacing:.16em}#resultCard h2{margin:11px 0 5px;color:#214f64;font-size:clamp(24px,6vw,34px);line-height:1.05;letter-spacing:-.055em}#resultSub{color:#63828b;font-size:12px;font-weight:700;margin-bottom:13px}#killMarks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;min-height:34px;padding:4px 0 10px}#killMarks .mark{width:26px;height:16px;border-radius:55% 50% 48% 60%;background:linear-gradient(180deg,#5eb4ba,#2f6f89);position:relative;transform:rotate(-7deg)}#killMarks .mark:before{content:'';position:absolute;right:-6px;top:4px;width:7px;height:7px;background:inherit;clip-path:polygon(0 50%,100% 0,100% 100%)}#killMarks .mark:after{content:'';position:absolute;left:6px;top:5px;width:12px;height:5px;border-radius:999px;background:#fff5d7cc}#killMarks .more{align-self:center;padding:6px 9px;border-radius:999px;background:#ebf5f4;color:#49707b;font-size:11px;font-weight:900}.resultButtons{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}#endActions button{border:1px solid #d0dbdca3;border-radius:999px;padding:12px 18px;font-size:14px;background:#f1f5f5d8;color:#486975;box-shadow:none;font-weight:850;letter-spacing:-.02em}#endActions #again{background:linear-gradient(#ffd974,#ffc14a);border-color:#ffe8a7;color:#6f4a1e;box-shadow:0 4px 0 #ce9140}#endActions .ghost{background:#ffffffd7;color:#496d78}#endActions.show{opacity:1;visibility:visible}
+#endActions{position:absolute;left:14px;right:14px;bottom:calc(22px + var(--safeB));z-index:18;text-align:center;opacity:0;visibility:hidden;transition:opacity 1.2s,visibility 1.2s}#resultCard{max-width:420px;margin:0 auto;padding:18px 18px 15px;border-radius:28px;background:linear-gradient(180deg,#fffcf3f0,#f5ffffef);border:1px solid #ffffffd9;box-shadow:0 18px 50px #214d5b21,0 4px 0 #ffffffb5;backdrop-filter:blur(8px)}#resultCard .result-kicker{display:inline-block;padding:6px 12px;border-radius:999px;background:#e8f7f7;color:#4d7b86;font-size:12px;font-weight:900;letter-spacing:-.01em}#resultCard h2{margin:11px 0 5px;color:#214f64;font-size:clamp(24px,6vw,34px);line-height:1.05;letter-spacing:-.055em}#resultSub{color:#63828b;font-size:12px;font-weight:700;margin-bottom:13px}#killMarks{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;min-height:34px;padding:4px 0 10px}#killMarks .mark{width:26px;height:16px;border-radius:55% 50% 48% 60%;background:linear-gradient(180deg,#5eb4ba,#2f6f89);position:relative;transform:rotate(-7deg)}#killMarks .mark:before{content:'';position:absolute;right:-6px;top:4px;width:7px;height:7px;background:inherit;clip-path:polygon(0 50%,100% 0,100% 100%)}#killMarks .mark:after{content:'';position:absolute;left:6px;top:5px;width:12px;height:5px;border-radius:999px;background:#fff5d7cc}#killMarks .more{align-self:center;padding:6px 9px;border-radius:999px;background:#ebf5f4;color:#49707b;font-size:11px;font-weight:900}.resultButtons{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}#endActions button{border:1px solid #d0dbdca3;border-radius:999px;padding:12px 18px;font-size:14px;background:#f1f5f5d8;color:#486975;box-shadow:none;font-weight:850;letter-spacing:-.02em}#endActions #again{background:linear-gradient(#ffd974,#ffc14a);border-color:#ffe8a7;color:#6f4a1e;box-shadow:0 4px 0 #ce9140}#endActions .ghost{background:#ffffffd7;color:#496d78}#endActions.show{opacity:1;visibility:visible}
 #status{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:28px;text-align:center;background:#e5f2f1f5;color:#315867;font-size:15px;line-height:1.8;white-space:pre-line}#status.show{display:flex}#status button{border:0;border-radius:12px;padding:10px 20px;margin-top:16px;background:#ffcf6b;color:#4c5344;font-weight:800}
 #resume{position:absolute;inset:0;z-index:40;border:0;background:#e2f1f073;color:#2c6070;font-size:18px;font-weight:800;backdrop-filter:blur(3px);display:none}#resume.show{display:block}
 #app.play #hud{opacity:1}#app.play #dock{opacity:1;visibility:visible;pointer-events:auto}
@@ -68,7 +68,7 @@ h1 strong{display:block;width:max-content;margin:3px auto 0;color:#ffd268;font-s
 @media(min-width:900px){body{background:radial-gradient(ellipse at 50% 25%,#d5eeee,#94c9d3)}#app{box-shadow:0 0 100px #376c7730}#app:before{content:"";position:absolute;inset:0;border-left:1px solid #fff3;border-right:1px solid #fff3;pointer-events:none;z-index:55}}
 @media(max-height:550px){#logo{top:8%}.kicker{display:none}h1 span{font-size:43px;-webkit-text-stroke-width:5px}h1 strong{font-size:34px;-webkit-text-stroke-width:4px}.logo-star{display:none}#startArea{bottom:6%}.bigbtn{min-height:46px;font-size:18px;padding:8px 37px;border-radius:16px}#startArea p{font-size:12px;margin-bottom:9px}#introHint{display:none}}
 @media(prefers-reduced-motion:reduce){.cloud,h1,#energyFill:after{animation:none}*{scroll-behavior:auto!important}}
-#endActions:not(.show){transition:none}#killMarks .mark{background:none;box-shadow:none;width:30px;height:25px;transform:none}#killMarks .mark:before,#killMarks .mark:after{display:none}#killMarks .mark svg{display:block;width:100%;height:100%}.mixTitle{font-size:12px;font-weight:900;padding:8px 10px}.mixRow{display:flex;align-items:center;gap:12px;padding:7px 10px;font-size:12px;font-weight:700}.mixRow input{width:118px;accent-color:#3f8896}#settings{max-height:calc(var(--vh) - 76px);overflow:auto}#app.showtime #sky{opacity:.26}#app.showtime{background:linear-gradient(#395b7e,#8cbdcb 52%,#9bdcdf)}#endActions #recordClose{display:none}#endActions.inspect #again{display:none}#endActions.inspect #recordClose{display:inline-block}#endActions.inspect{z-index:41}#app.compact #resultCard{padding:10px 12px}#app.compact #resultCard h2{font-size:25px}#app.compact #resultSub{margin-bottom:5px}#app.compact #killMarks{max-height:44px;overflow:hidden}#resultCard h2{overflow-wrap:anywhere}#endActions button{padding:11px 14px}
+#endActions:not(.show){transition:none}#killMarks .mark{background:none;box-shadow:none;width:36px;height:19px;transform:none}#killMarks .mark:before,#killMarks .mark:after{display:none}#killMarks .mark svg{display:block;width:100%;height:100%}.mixTitle{font-size:12px;font-weight:900;padding:8px 10px}.mixRow{display:flex;align-items:center;gap:12px;padding:7px 10px;font-size:12px;font-weight:700}.mixRow input{width:118px;accent-color:#3f8896}#settings{max-height:calc(var(--vh) - 76px);overflow:auto}#app.showtime #sky{opacity:.26}#app.showtime{background:linear-gradient(#395b7e,#8cbdcb 52%,#9bdcdf)}#endActions #recordClose{display:none}#endActions.inspect #again{display:none}#endActions.inspect #recordClose{display:inline-block}#endActions.inspect{z-index:41}#app.compact #resultCard{padding:10px 12px}#app.compact #resultCard h2{font-size:25px}#app.compact #resultSub{margin-bottom:5px}#app.compact #killMarks{max-height:44px;overflow:hidden}#resultCard h2{overflow-wrap:anywhere}#endActions button{padding:11px 14px}
 </style>
 </head>
 <body>
@@ -83,7 +83,7 @@ h1 strong{display:block;width:max-content;margin:3px auto 0;color:#ffd268;font-s
 <div id="hud"><span class="heart">♥</span><span>칭찬</span><b id="score">0</b></div>
 <div id="words"></div><div id="cheer" aria-hidden="true"></div><div id="flash"></div><div id="lens"></div>
 <section id="dock"><p id="lesson">위의 칭찬 문장을 천천히 적어 주세요.</p><div id="entry"><input id="input" aria-label="칭찬 입력" placeholder="따뜻한 말을 적어 주세요" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done"><button id="clear" aria-label="입력 지우기" title="지우기">×</button></div><div id="energy" role="progressbar" aria-label="고래의 남은 체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="energyFill"></div></div></section>
-<div id="endActions"><div id="resultCard"><div class="result-kicker">COMPLIMENT LOG</div><h2 id="resultCount">칭찬한 고래 0마리</h2><div id="resultSub">오늘도 최선을 다해 칭찬했어요.</div><div id="killMarks"></div><div class="resultButtons"><button id="again">칭찬 또 하기</button><button id="recordClose" class="ghost">돌아가기</button><button id="saveCard" class="ghost">이미지 저장</button><button id="shareCard" class="ghost">공유</button></div></div></div>
+<div id="endActions"><div id="resultCard"><div class="result-kicker">고래 칭찬하기</div><h2 id="resultCount">칭찬한 고래 0마리</h2><div id="resultSub">칭찬을 칭찬해</div><div id="killMarks"></div><div class="resultButtons"><button id="again">칭찬 또 하기</button><button id="recordClose" class="ghost">돌아가기</button><button id="saveCard" class="ghost">이미지 저장</button><button id="shareCard" class="ghost">공유</button></div></div></div>
 <button id="resume">이어서 칭찬하기</button><div id="status" role="alert"></div>
 <noscript>이 게임을 실행하려면 브라우저의 자바스크립트를 켜 주세요.</noscript>
 </main>
@@ -2400,7 +2400,7 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
         const shown = Math.min(RUN.whales, 24);
         for (let i = 0; i < shown; i++) {
             const d = document.createElement('div');
-            d.className = 'mark';d.innerHTML='<svg viewBox="-58 -47 125 90" aria-hidden="true"><path d="'+WHALE_PATH+'" fill="#2e7082"/><path d="M-11-22v-13m0 3q-7-12-13-5m13 5q8-12 14-5" fill="none" stroke="#2e7082" stroke-width="4" stroke-linecap="round"/></svg>';
+            d.className = 'mark';d.innerHTML='<svg viewBox="-58 -30 125 62" aria-hidden="true"><g transform="rotate(180)"><path d="'+WHALE_PATH+'" fill="#2e7082"/><path d="M-34-6l8 8m0-8l-8 8" fill="none" stroke="#f7fbfb" stroke-width="4.5" stroke-linecap="round"/></g></svg>';
             wrap.appendChild(d);
         }
         if (RUN.whales > shown) {
@@ -2413,47 +2413,55 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
     function updateResultUI() {
         const title = $('resultCount'), sub = $('resultSub');
         if (title) title.textContent = `칭찬한 고래 ${RUN.whales}마리`;
-        if (sub) sub.textContent = '오늘도 최선을 다해 칭찬했어요.';
+        if (sub) sub.textContent = '칭찬을 칭찬해';
         renderKillMarks();
     }
     function renderCorpseLayer(){ syncRemains(S.backgroundCount); }
     const WHALE_PATH='M-46 -3 C-47 -22 -25 -29 -8 -23 C9 -17 16 -1 27 -1 C34 -2 38 -9 37 -16 C45 -17 51 -22 56 -26 C60 -18 56 -10 48 -5 C44 14 27 24 7 25 L-14 25 C-37 24 -48 15 -46 -3 Z';
     function drawWhaleIcon(ctx,x,y,s,dead=false){ctx.save();ctx.translate(x,y);ctx.scale(s,s);if(dead)ctx.rotate(PI);
         ctx.fillStyle='#143f48';ctx.fill(new Path2D(WHALE_PATH));ctx.fillStyle='#e4f2c8';ctx.beginPath();ctx.moveTo(-40,8);ctx.bezierCurveTo(-24,20,9,24,27,9);ctx.bezierCurveTo(18,29,-30,32,-40,8);ctx.fill();
-        ctx.fillStyle='#faf8e9';ctx.beginPath();ctx.arc(-30,-2,2.4,0,TAU);ctx.fill();
+        if(dead){ctx.strokeStyle='#faf8e9';ctx.lineWidth=2.6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-33.5,-5.5);ctx.lineTo(-26.5,1.5);ctx.moveTo(-26.5,-5.5);ctx.lineTo(-33.5,1.5);ctx.stroke();}
+        else{ctx.fillStyle='#faf8e9';ctx.beginPath();ctx.arc(-30,-2,2.4,0,TAU);ctx.fill();}
         ctx.fillStyle='#143f48';ctx.beginPath();ctx.moveTo(-12,10);ctx.quadraticCurveTo(-9,29,3,27);ctx.quadraticCurveTo(2,14,-12,10);ctx.fill();
         if(!dead){ctx.strokeStyle='#143f48';ctx.lineWidth=3.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-11,-24);ctx.lineTo(-11,-35);ctx.quadraticCurveTo(-18,-45,-21,-35);ctx.moveTo(-11,-34);ctx.quadraticCurveTo(-2,-45,1,-36);ctx.stroke();}
         ctx.restore();
     }
     function makeShareCanvas(){
-        const c=document.createElement('canvas');c.width=1080;c.height=1350;const g=c.getContext('2d');
-        const ink='#143f48',paper='#f9f7e8',mint='#cae9d6',lime='#d7f54c';
-        g.fillStyle=paper;g.fillRect(0,0,1080,1350);g.strokeStyle=ink;g.lineWidth=3;g.strokeRect(46,46,988,1258);
+        // 명함 비율에서 출발해, 죽인 고래가 한 줄씩 늘 때마다 영수증처럼 길어진다.
+        const W=1080,PADX=72,ROWH=118,PERROW=6;
+        const rows=Math.max(1,Math.min(150,Math.ceil(RUN.whales/PERROW))),TOP=470;
+        const c=document.createElement('canvas');c.width=W;c.height=TOP+rows*ROWH+58;
+        const H=c.height,g=c.getContext('2d');
+        const ink='#143f48',paper='#f9f7e8',lime='#d7f54c';
         const font=(size,weight=900)=>`${weight} ${size}px "Apple SD Gothic Neo","Noto Sans CJK KR","Malgun Gothic",Arial,sans-serif`;
-        g.fillStyle=ink;g.font=font(23);g.fillText('WHALE SUPPORT CLUB',88,113);g.textAlign='right';g.font=font(22,700);g.fillText('고래 칭찬하기',992,113);g.textAlign='left';
-        g.beginPath();g.moveTo(88,145);g.lineTo(992,145);g.stroke();
-        g.fillStyle=mint;roundRect(g,88,189,370,57,28);g.fill();g.fillStyle=ink;g.font=font(23);g.fillText('오늘도 좋은 말 한마디',115,227);
-        g.font=font(71);g.fillText('칭찬한 고래',88,353);
-        const text=RUN.whales.toLocaleString('en-US');let fs=221;g.font=font(fs);while(g.measureText(text).width>765){fs-=4;g.font=font(fs);}
-        g.fillText(text,79,586);const w=g.measureText(text).width;g.font=font(46);g.fillText('마리',Math.min(895,97+w),580);
-        // A bright campaign-style sticker. The game does not explain its joke on the card.
-        g.save();g.translate(890,295);g.rotate(.15);g.fillStyle=lime;g.beginPath();for(let i=0;i<28;i++){const a=i/28*TAU,r=i%2?73:89;const x=Math.cos(a)*r,y=Math.sin(a)*r;if(i)g.lineTo(x,y);else g.moveTo(x,y);}g.closePath();g.fill();g.strokeStyle=ink;g.lineWidth=2;g.stroke();g.fillStyle=ink;g.textAlign='center';g.font=font(21);g.fillText('참 잘했어요',0,7);g.restore();
-        g.strokeStyle=ink;g.lineWidth=2;g.beginPath();g.moveTo(88,633);g.lineTo(992,633);g.stroke();
-        const shown=Math.min(RUN.whales,30);for(let i=0;i<shown;i++)drawWhaleIcon(g,143+(i%6)*151,700+Math.floor(i/6)*62,.48,false);
-        if(RUN.whales>shown){g.fillStyle=ink;g.font=font(24);g.textAlign='right';g.fillText(`+ ${(RUN.whales-shown).toLocaleString('en-US')}`,992,1021);g.textAlign='left';}
-        g.fillStyle=mint;g.fillRect(47,1035,986,210);g.fillStyle=ink;g.font=font(26);g.fillText('GOOD WORDS.',88,1100);g.fillText('GOOD WORK.',88,1140);
-        drawWhaleIcon(g,799,1124,2.2,true);g.strokeStyle=ink;g.lineWidth=2;
-        for(let j=0;j<3;j++){g.beginPath();g.moveTo(513,1201+j*10);g.bezierCurveTo(680,1187+j*10,850,1220+j*10,987,1200+j*10);g.stroke();}
-        g.fillStyle=ink;g.font=font(20,650);g.fillText('칭찬은 고래도 춤추게 해요.',88,1281);g.textAlign='right';g.font=font(18,700);g.fillText('혐규오락실 / WHALE',992,1281);g.textAlign='left';
+        g.beginPath();g.moveTo(6,6);g.lineTo(W-6,6);g.lineTo(W-6,H-26);
+        for(let x=Math.ceil(W/36)*36;x>0;x-=36){g.lineTo(x-18,H-8);g.lineTo(x-36,H-26);}
+        g.closePath();g.fillStyle=paper;g.fill();g.strokeStyle=ink;g.lineWidth=5;g.stroke();
+        const rule=y=>{g.save();g.strokeStyle=ink;g.lineWidth=3;g.setLineDash([13,11]);g.beginPath();g.moveTo(PADX,y);g.lineTo(W-PADX,y);g.stroke();g.restore();};
+        g.fillStyle=ink;g.font=font(44);g.fillText('고래 칭찬하기',PADX,108);rule(152);
+        g.save();g.translate(888,268);g.rotate(-.14);g.fillStyle=lime;g.beginPath();
+        for(let i=0;i<28;i++){const a=i/28*TAU,r=i%2?76:96,x=Math.cos(a)*r,y=Math.sin(a)*r;if(i)g.lineTo(x,y);else g.moveTo(x,y);}
+        g.closePath();g.fill();g.strokeStyle=ink;g.lineWidth=3;g.stroke();
+        g.fillStyle=ink;g.textAlign='center';g.font=font(31);g.fillText('칭찬을',0,-7);g.fillText('칭찬해',0,31);g.restore();g.textAlign='left';
+        g.fillStyle=ink;g.font=font(56);g.fillText('칭찬한 고래',PADX,250);
+        const text=RUN.whales.toLocaleString('en-US');let fs=146;g.font=font(fs);
+        while(g.measureText(text).width>520){fs-=4;g.font=font(fs);}
+        g.fillText(text,PADX-6,392);
+        const w=g.measureText(text).width;g.font=font(44);g.fillText('마리',PADX+10+w,386);
+        rule(TOP-36);
+        for(let i=0;i<Math.min(RUN.whales,rows*PERROW);i++)
+            drawWhaleIcon(g,PADX+78+(i%PERROW)*((W-PADX*2)/PERROW),TOP+58+Math.floor(i/PERROW)*ROWH,1.08,true);
+        const extra=RUN.whales-rows*PERROW;
+        if(extra>0){g.fillStyle=ink;g.font=font(30);g.textAlign='right';g.fillText('+ '+extra.toLocaleString('en-US'),W-PADX,TOP+rows*ROWH+4);g.textAlign='left';}
         return c;
     }
     function shareBlob(){return new Promise((resolve,reject)=>makeShareCanvas().toBlob(b=>b?resolve(b):reject(new Error('이미지를 만들지 못했어요.')),'image/png'));}
     async function saveShareCard(){
-        try{const blob=await shareBlob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`whale-compliment-${RUN.whales}.png`;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+        try{const blob=await shareBlob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`고래칭찬-${RUN.whales}마리.png`;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
         catch(e){alert('이미지 저장에 실패했어요. '+e.message);}
     }
     async function shareCard(){
-        try{const blob=await shareBlob(),file=new File([blob],`whale-compliment-${RUN.whales}.png`,{type:'image/png'});
+        try{const blob=await shareBlob(),file=new File([blob],`고래칭찬-${RUN.whales}마리.png`,{type:'image/png'});
             if(navigator.canShare&&navigator.canShare({files:[file]})&&navigator.share)await navigator.share({files:[file],title:'고래 칭찬하기',text:`고래 ${RUN.whales}마리를 칭찬했어요.`});else await saveShareCard();
         }catch(e){if(e.name!=='AbortError')await saveShareCard();}
     }
