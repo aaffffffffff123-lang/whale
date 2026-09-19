@@ -8,7 +8,7 @@
 <title>고래 칭찬하기</title>
 <link id="favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23c4ecf1'/%3E%3Cpath d='M10 34Q11 24 24 26Q37 26 41 37Q49 38 51 29L48 26Q55 24 59 21Q59 31 55 33Q54 49 36 50H26Q10 50 10 34' fill='%23295871'/%3E%3Cpath d='M13 39Q24 47 42 43Q35 51 24 47Q16 46 13 39' fill='%23fff6d6'/%3E%3Ccircle cx='20' cy='34' r='2.3' fill='%230c2738'/%3E%3Ccircle cx='19.5' cy='33.2' r='.8' fill='white'/%3E%3Cpath d='M25 24V13Q23 7 18 10M25 17Q28 7 34 11' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <style>
-:root{--ink:#214f64;--deep:#194457;--cream:#fff9e7;--gold:#ffc54e;--vh:100dvh;--safeT:env(safe-area-inset-top,0px);--safeB:env(safe-area-inset-bottom,0px)}
+:root{--ink:#214f64;--deep:#194457;--cream:#fff9e7;--gold:#ffc54e;--vh:100dvh;--dockTop:calc(100dvh - 118px);--safeT:env(safe-area-inset-top,0px);--safeB:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
 body{background:#b7e5ed;color:var(--ink);font-family:'Arial Rounded MT Bold','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif}
@@ -54,7 +54,7 @@ h1 strong{display:block;width:max-content;margin:3px auto 0;color:#ffd268;font-s
 #clear.ready{background:#ffd36f;color:#79551e;font-weight:900}
 #clear{border:0;background:#e9f2f0;color:#719396;border-radius:50%;width:31px;height:31px;font-size:20px;display:grid;place-items:center;padding:0;margin:0 3px}
 #energy{position:relative;height:7px;border-radius:9px;background:#f5faf895;margin:13px 4px 0;overflow:hidden;box-shadow:0 1px 0 #54899322}#energyFill{height:100%;width:100%;border-radius:9px;background:linear-gradient(90deg,#62c8a7,#b5edb1);transition:width .16s linear,background .6s;position:relative}#energy.tired #energyFill{background:linear-gradient(90deg,#f1ad51,#f8d677)}#energy.critical #energyFill{background:linear-gradient(90deg,#cb3d50,#f77973)}#energy.critical{box-shadow:0 0 0 1px #bc4d4640,0 0 9px #e7684140}#energyFill:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#fff0,#fff8,#fff0);animation:gleam 2.4s infinite;transform:translateX(-100%)}@keyframes gleam{to{transform:translateX(100%)}}
-#cheer{position:absolute;z-index:10;left:50%;top:78%;text-align:center;pointer-events:none;opacity:0;white-space:nowrap;font-weight:950;color:#fff8d4;font-size:27px;-webkit-text-stroke:1px #ba7d2a;paint-order:stroke fill;text-shadow:0 3px 0 #25526666;transform:translate(-50%,-50%)}
+#cheer{position:absolute;z-index:10;left:50%;top:min(78%,calc(var(--dockTop) - 40px));text-align:center;pointer-events:none;opacity:0;white-space:nowrap;font-weight:950;color:#fff8d4;font-size:27px;-webkit-text-stroke:1px #ba7d2a;paint-order:stroke fill;text-shadow:0 3px 0 #25526666;transform:translate(-50%,-50%)}
 #cheer.pop{animation:cheer .95s both}@keyframes cheer{0%{opacity:0;transform:translate(-50%,-35%) scale(.7) rotate(-7deg)}16%{opacity:1;transform:translate(-50%,-60%) scale(1.18) rotate(-4deg)}34%{transform:translate(-50%,-50%) scale(1) rotate(-4deg)}72%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(.96)}}
 #flash{position:absolute;inset:0;z-index:9;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 58%,#fffbe4b0,#fff4 30%,#fff0 65%)}
 #lens{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:9}.lensdrop{position:absolute;width:13px;height:20px;border-radius:55% 45% 47% 53%;background:linear-gradient(135deg,#fffa,#ffffff00 45%,#80cbe04a);border:1px solid #fff6;box-shadow:inset 1px 2px 2px #fff8;animation:lens 1s ease-in forwards}@keyframes lens{0%{opacity:0;transform:scale(.4)}12%{opacity:.85;transform:scale(1)}100%{opacity:0;transform:translateY(50px) scale(.85)}}
@@ -64,7 +64,7 @@ h1 strong{display:block;width:max-content;margin:3px auto 0;color:#ffd268;font-s
 #app.play #hud{opacity:1}#app.play #dock{opacity:1;visibility:visible;pointer-events:auto}
 #app.ending{background:linear-gradient(180deg,#d3dfdf,#e8edeb 65%,#abc3c4)}
 #app.ending #hud,#app.ending #dock{opacity:0;visibility:hidden;pointer-events:none}#app.ending #sky{opacity:.22}#app.ending #vignette{box-shadow:inset 0 0 90px #53686e30;background:linear-gradient(180deg,#fff0 50%,#70899020)}
-#app.compact #lesson{display:none}#app.compact #dock{bottom:8px}#app.compact #energy{margin-top:8px;height:5px}#app.compact #entry{border-radius:16px}#app.compact #input{padding:9px 11px;font-size:17px}#app.compact #tools{top:7px}#app.compact #hud{top:14px}#app.compact .word{padding:7px 15px;font-size:16px;border-radius:14px}#app.compact .word.wait{font-size:14px}
+#app.compact #lesson{display:block;position:absolute;left:0;right:0;bottom:100%;margin:0 0 7px;pointer-events:none}#app.compact #dock{bottom:calc(8px + var(--safeB))}#app.compact #energy{margin-top:8px;height:5px}#app.compact #entry{border-radius:16px}#app.compact #input{padding:9px 11px;font-size:17px}#app.compact #tools{top:7px}#app.compact #hud{top:14px}#app.compact .word{padding:7px 15px;font-size:16px;border-radius:14px}#app.compact .word.wait{font-size:14px}
 @media(min-width:900px){body{background:radial-gradient(ellipse at 50% 25%,#d5eeee,#94c9d3)}#app{box-shadow:0 0 100px #376c7730}#app:before{content:"";position:absolute;inset:0;border-left:1px solid #fff3;border-right:1px solid #fff3;pointer-events:none;z-index:55}}
 @media(max-height:550px){#logo{top:8%}.kicker{display:none}h1 span{font-size:43px;-webkit-text-stroke-width:5px}h1 strong{font-size:34px;-webkit-text-stroke-width:4px}.logo-star{display:none}#startArea{bottom:6%}.bigbtn{min-height:46px;font-size:18px;padding:8px 37px;border-radius:16px}#startArea p{font-size:12px;margin-bottom:9px}#introHint{display:none}}
 @media(prefers-reduced-motion:reduce){.cloud,h1,#energyFill:after{animation:none}*{scroll-behavior:auto!important}}
@@ -103,7 +103,7 @@ h1 strong{display:block;width:max-content;margin:3px auto 0;color:#ffd268;font-s
     const RUN={whales:0,seen:[],round:0};
     try{const v=JSON.parse(localStorage.getItem(RUN_KEY)||'null');if(v&&Number.isSafeInteger(v.whales)&&v.whales>=0){RUN.whales=Math.min(v.whales,999999);RUN.round=RUN.whales;RUN.seen=Array.isArray(v.seen)?v.seen.filter(x=>typeof x==='string').slice(-40):[];}}catch(_){}
     function saveRun(){try{localStorage.setItem(RUN_KEY,JSON.stringify({whales:RUN.whales,seen:RUN.seen}));}catch(_){}}
-    const MIX={music:.90,water:.72,effects:.52};
+    const MIX={music:.90,water:.50,effects:.52};
     try{const m=JSON.parse(localStorage.getItem('whale_mix_v2')||'null');if(m)for(const k of Object.keys(MIX))if(Number.isFinite(m[k]))MIX[k]=clamp(m[k]);}catch(_){}
     // No wall-clock deadline. Each accepted sentence funds exactly one move.
     const CONFIG = Object.freeze({ FINALE_SECONDS: 10.2, MAX_WORDS: 1, WORD_SECONDS: 32, COMBO_SECONDS: 12, MIN_SPAWN_GAP: .35, NEXT_WORD_AT: .70, MAX_SNOW: 360 });
@@ -2328,7 +2328,7 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
     }
     /* ── 키패드와 작은 화면: 게임 영역의 시간을 바꾸지 않고 배치만 조절 ── */
     function resize() { let vv = window.visualViewport, h = vv ? vv.height : innerHeight; if (keyboardGuess)
-        h = Math.min(h, fullHeight - keyboardGuess); h = Math.max(280, Math.round(h)); document.documentElement.style.setProperty('--vh', h + 'px'); let w = el.app.clientWidth || innerWidth; W = w; H = h; compact = h < 560; el.app.classList.toggle('compact', compact); DPR = Math.min(reduced ? 1.35 : qualityCap, devicePixelRatio || 1); if (el.canvas.width !== Math.round(w * DPR) || el.canvas.height !== Math.round(h * DPR)) {
+        h = Math.min(h, fullHeight - keyboardGuess); h = Math.max(280, Math.round(h)); document.documentElement.style.setProperty('--vh', h + 'px'); let w = el.app.clientWidth || innerWidth; W = w; H = h; compact = h < 560; el.app.classList.toggle('compact', compact); document.documentElement.style.setProperty('--dockTop', Math.round(Math.min($('dock').getBoundingClientRect().top, $('lesson').getBoundingClientRect().top) - el.app.getBoundingClientRect().top) + 'px'); DPR = Math.min(reduced ? 1.35 : qualityCap, devicePixelRatio || 1); if (el.canvas.width !== Math.round(w * DPR) || el.canvas.height !== Math.round(h * DPR)) {
         el.canvas.width = Math.round(w * DPR);
         el.canvas.height = Math.round(h * DPR);
     } if (S) {
