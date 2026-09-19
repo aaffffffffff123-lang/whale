@@ -984,7 +984,7 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
             this.noise=a.createBuffer(1,Math.ceil(a.sampleRate*3),a.sampleRate);const n=this.noise.getChannelData(0);for(let i=0;i<n.length;i++)n[i]=Math.random()*2-1;
             this.waterBuffers=[this.waterBed(13.7,72817),this.waterBed(17.3,98119)];
             this.splashes=[.40,.75,1.25,2.35].map((d,i)=>this.splashBuffer(d,13081+i*9127));
-            for(let i=0;i<2;i++){const src=a.createBufferSource(),g=a.createGain();src.buffer=this.waterBuffers[i];src.loop=true;src.playbackRate.value=i?.981:1;g.gain.value=i?.47:.66;src.connect(g);g.connect(this.amb);src.start(0,i?2.7:0);this.bedNodes.push(src,g);}
+            for(let i=0;i<2;i++){const src=a.createBufferSource(),g=a.createGain();src.buffer=this.waterBuffers[i];src.loop=true;src.playbackRate.value=i?.981:1;g.gain.value=i?.19:.26;src.connect(g);g.connect(this.amb);src.start(0,i?2.7:0);this.bedNodes.push(src,g);}
             this.nextBeat=a.currentTime+.03;this.beat=0;this.wasPlaying=false;this.lastAmbMode=null;
         },
         random(seed){let x=seed|0;return()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return (x>>>0)/4294967296;};},
