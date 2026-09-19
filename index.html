@@ -618,40 +618,219 @@ void main(){gl_Position=uVP*vec4(aPos,1.);vC=aColor;vA=aAlpha;}`,
     const moonProgram=program(`precision highp float;
 attribute vec2 aPos;varying vec2 vUV;void main(){vUV=aPos*.5+.5;gl_Position=vec4(aPos,.999,1.);}`,
 `precision highp float;
-varying vec2 vUV;uniform vec3 uMoon;uniform float uAspect,uAlpha,uTime;
+varying vec2 vUV;uniform vec3 uMoon,uTint;uniform float uAspect,uAlpha,uTime,uKind,uSeed,uProp,uPropX;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.)),f.x),f.y);}
 float fbm(vec2 p){return noise(p)*.53+noise(p*2.08+7.)*.27+noise(p*4.11+3.)*.13+noise(p*8.2)*.07;}
-float spot(vec2 p,vec2 center,vec2 scale){vec2 d=(p-center)/scale;return exp(-dot(d,d)*2.);}
+float spot(vec2 p,vec2 c,vec2 s){vec2 d=(p-c)/s;return exp(-dot(d,d)*2.);}
+float segd(vec2 p,vec2 a,vec2 b){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return length(pa-ba*h);}
+vec4 put(vec4 o,vec3 c,float m){m=clamp(m,0.,1.);return vec4(mix(o.rgb,c,m),o.a+m*(1.-o.a));}
+float dots(vec2 p,float g,float thr,float sz,float sd){vec2 q=p*g,id=floor(q);
+ float d=length(fract(q)-vec2(hash(id+3.+sd),hash(id+7.1+sd)))/g;
+ return step(thr,hash(id+sd))*((1.-smoothstep(sz*.5,sz,d))+exp(-(d/sz)*(d/sz)*5.)*.5);}
+float glow(vec2 p,vec2 c,float k){return exp(-length(p-c)*k);}
+vec4 celestial(vec2 p){
+ float r=length(p);vec4 o=vec4(0.);
+ float disk=1.-smoothstep(.985,1.006,r);
+ float lit=(.55+.45*sqrt(max(0.,1.-r*r)))*(.66+.44*smoothstep(-1.1,.8,p.x-p.y*.3));
+ if(uKind<.5){
+  float tex=fbm(p*8.+vec2(8.,11.));
+  float maria=spot(p,vec2(-.36,.26),vec2(.34,.41))*.30+spot(p,vec2(.25,.32),vec2(.41,.23))*.24+spot(p,vec2(-.03,-.06),vec2(.22,.30))*.18+spot(p,vec2(.4,-.24),vec2(.22,.18))*.13;
+  float terrain=1.-maria+(tex-.5)*.21;
+  float craters=pow(clamp(noise(p*31.+8.),0.,1.),7.)*.11;
+  float shade=.84+.16*sqrt(max(0.,1.-r*r))+.033*p.x;
+  o=put(o,vec3(1.,.93,.70)*terrain*shade-vec3(craters*.7),disk);
+ }else if(uKind<1.5){
+  float tex=fbm(p*6.+uSeed);
+  float crat=pow(clamp(noise(p*24.+uSeed),0.,1.),6.)*.45;
+  o=put(o,uTint*(.70+tex*.62)*lit-vec3(crat*.22),disk);
+ }else if(uKind<2.5){
+  float s=sin(r*1.6),c=cos(r*1.6);
+  float sw=fbm(vec2((p.x*c-p.y*s)*3.4+uSeed,(p.x*s+p.y*c)*6.5));
+  o=put(o,uTint*(.72+sw*.66)*lit,disk);
+ }else if(uKind<3.5){
+  float warp=fbm(p*2.6+uSeed)*.55;
+  float bands=fbm(vec2(p.x*.9+warp,p.y*11.));
+  float red=spot(p,vec2(.32,-.26),vec2(.21,.115));
+  vec3 c=uTint*(.74+bands*.62)*lit;
+  c=c*(1.-red*.9)+vec3(.86,.33,.20)*(red*.9*lit);
+  o=put(o,c,disk);
+ }else if(uKind<4.5){
+  float rq=length(vec2(p.x,(p.y-p.x*.14)/.34));
+  float band=(1.-smoothstep(.09,.19,abs(rq-1.56)))*(.62+.38*sin(rq*30.));
+  band=max(band,(1.-smoothstep(.05,.12,abs(rq-2.06)))*.55);
+  band*=smoothstep(1.18,1.30,rq);
+  float behind=step(p.x*.14,p.y);
+  float bands=fbm(vec2(p.x*.8+fbm(p*2.2+uSeed)*.4,p.y*9.));
+  o=put(o,vec3(.95,.88,.72)*.78,band*behind*.9);
+  o=put(o,uTint*(.76+bands*.55)*lit,disk);
+  o=put(o,vec3(.95,.88,.72),band*(1.-behind)*(1.-disk*.45)*.9);
+ }else if(uKind<5.5){
+  float bands=fbm(vec2(p.x*.7+uSeed,p.y*6.));
+  float storm=spot(p,vec2(-.30,.34),vec2(.16,.11));
+  o=put(o,uTint*(.80+bands*.35)*lit+vec3(.85,.93,1.)*storm*.45,disk);
+ }else if(uKind<6.5){
+  vec2 e=vec2(p.x,(p.y-p.x*.10)/.30);
+  float er=length(e),ang=atan(e.y,e.x);
+  float rocks=dots(vec2(ang*11.1,er*3.2),6.3,.40,.26,uSeed)*(1.-smoothstep(.18,.48,abs(er-.86)));
+  o=put(o,vec3(.86,.90,.96),rocks*.95);
+  o=put(o,vec3(1.,.93,.68),clamp(exp(-r*26.)+1.-smoothstep(.035,.060,r),0.,1.));
+ }else if(uKind<7.5){
+  float e=length(vec2(p.x,p.y/.34));
+  for(int i=0;i<4;i++){
+   float rad=.34+float(i)*.205;
+   o=put(o,vec3(.55,.70,.95),(1.-smoothstep(.004,.013,abs(e-rad)))*.5);
+   float a=1.1+float(i)*1.9;
+   o=put(o,vec3(.95,.92,.80),1.-smoothstep(.018,.031,length(p-vec2(cos(a)*rad,sin(a)*rad*.34))));
+  }
+  o=put(o,vec3(1.,.88,.55),clamp(exp(-r*14.)*.9+1.-smoothstep(.05,.08,r),0.,1.));
+ }else if(uKind<8.5){
+  float core=1.-smoothstep(.05,.10,r);
+  float spike=exp(-abs(p.x)*26.)*exp(-abs(p.y)*2.6)+exp(-abs(p.y)*26.)*exp(-abs(p.x)*2.6);
+  o=put(o,uTint,clamp(core+spike*1.15+exp(-r*5.2)*1.04,0.,1.));
+ }else if(uKind<9.5){
+  vec2 s0=vec2(-.40,.50),s1=vec2(.37,.46),s2=vec2(-.09,.05),s3=vec2(.01,0.),s4=vec2(.11,-.05),s5=vec2(-.33,-.51),s6=vec2(.42,-.45);
+  float ln=0.;
+  ln=max(ln,1.-smoothstep(.004,.012,segd(p,s0,s2)));ln=max(ln,1.-smoothstep(.004,.012,segd(p,s2,s3)));
+  ln=max(ln,1.-smoothstep(.004,.012,segd(p,s3,s4)));ln=max(ln,1.-smoothstep(.004,.012,segd(p,s4,s1)));
+  ln=max(ln,1.-smoothstep(.004,.012,segd(p,s2,s5)));ln=max(ln,1.-smoothstep(.004,.012,segd(p,s4,s6)));
+  ln=max(ln,1.-smoothstep(.004,.012,segd(p,s0,s1)));
+  o=put(o,vec3(.62,.76,1.),ln*.42);
+  float st=0.;
+  st=max(st,1.-smoothstep(.022,.046,length(p-s0)));st=max(st,glow(p,s0,22.)*.55);
+  st=max(st,1.-smoothstep(.022,.046,length(p-s1)));st=max(st,glow(p,s1,22.)*.55);
+  st=max(st,1.-smoothstep(.020,.042,length(p-s2)));st=max(st,glow(p,s2,24.)*.5);
+  st=max(st,1.-smoothstep(.020,.042,length(p-s3)));st=max(st,glow(p,s3,24.)*.5);
+  st=max(st,1.-smoothstep(.020,.042,length(p-s4)));st=max(st,glow(p,s4,24.)*.5);
+  st=max(st,1.-smoothstep(.022,.046,length(p-s5)));st=max(st,glow(p,s5,22.)*.55);
+  st=max(st,1.-smoothstep(.022,.046,length(p-s6)));st=max(st,glow(p,s6,22.)*.55);
+  o=put(o,vec3(1.,.97,.92),clamp(st,0.,1.));
+ }else if(uKind<10.5){
+  float haze=(exp(-r*1.9)*.42+exp(-r*r*3.2)*.30)*(.6+.6*fbm(p*2.2+uSeed));
+  o=put(o,vec3(.46,.64,1.),clamp(haze,0.,1.));
+  float w=exp(-r*1.5),st=0.;
+  st=max(st,dots(p,6.,.30,.030,uSeed)*w);
+  st=max(st,dots(p,11.,.55,.017,uSeed+4.)*w);
+  st=max(st,dots(p,18.,.70,.010,uSeed+9.)*w);
+  o=put(o,vec3(.92,.96,1.),clamp(st,0.,1.));
+ }else if(uKind<11.5){
+  float n1=fbm(p*1.5+uSeed),n2=fbm(p*3.3+3.+uSeed),n3=fbm(p*6.6+9.);
+  float body=clamp((n1*1.25+n2*.70+n3*.32-1.09)*2.3,0.,1.)*exp(-r*r*.70);
+  float hot=clamp(body-.70,0.,1.)*1.5;
+  vec3 c=vec3(.95,.40,.52)*body+vec3(.25,.50,.95)*(body*n2*1.5)+vec3(1.,.86,.58)*hot;
+  o=put(o,c,clamp(body*1.25,0.,1.)*.93);
+  o=put(o,vec3(1.,.98,.94),dots(p,10.,.80,.010,uSeed+2.));
+ }else if(uKind<12.5){
+  float rr=length(vec2(p.x,p.y*2.6))+1e-4;
+  float arms=sin(atan(p.y*2.6,p.x)*2.-log(rr+.14)*5.4);
+  float band=clamp(smoothstep(.25,1.,arms)*exp(-rr*1.7)*(.7+fbm(vec2(p.x*5.+uSeed,p.y*13.))*.8),0.,1.)*1.5;
+  float bulge=exp(-rr*rr*26.)*1.3,halo=exp(-rr*2.6)*.20;
+  o=put(o,vec3(.72,.84,1.)*band+vec3(1.,.90,.62)*bulge+vec3(.40,.52,.92)*halo,clamp(band*.95+bulge+halo,0.,1.));
+ }else if(uKind<13.5){
+  for(int i=0;i<5;i++){
+   float fi=float(i);
+   vec2 c=vec2(sin(fi*2.7+1.1)*.55,cos(fi*1.9+.4)*.42);
+   float sc=.40-fi*.062;
+   vec2 d=(p-c)/sc;
+   float rr=length(vec2(d.x,d.y*(i==0?2.4:1.7)));
+   float m=exp(-rr*rr*(i==0?9.:6.5))+(i==0?clamp(smoothstep(.1,.95,sin(atan(d.y*2.4,d.x)*2.-log(rr+.18)*4.2))*exp(-rr*1.5),0.,1.):0.);
+   o=put(o,vec3(.80,.86,1.),clamp(m,0.,1.)*.95);
+  }
+ }else if(uKind<14.5){
+  o=put(o,vec3(.48,.64,1.),clamp(exp(-r*r*1.5)*.26*(.7+.5*fbm(p*2.+uSeed)),0.,1.));
+  float b=0.;
+  b=max(b,dots(p,5.,.38,.075,uSeed)*exp(-r*1.2));
+  b=max(b,dots(p,9.,.58,.042,uSeed+6.)*exp(-r*1.2));
+  o=put(o,vec3(1.,.94,.84),clamp(b*1.25,0.,1.));
+ }else if(uKind<15.5){
+  float n=fbm(p*1.9+uSeed);
+  float fil=clamp(1.-abs(n*2.-1.)*5.5,0.,1.)*(.30+1.1*fbm(p*4.4+2.));
+  float knot=clamp(fil-.55,0.,1.)*2.6;
+  o=put(o,vec3(.50,.64,1.)*(fil*1.2)+vec3(1.,.93,.78)*knot,clamp(fil*1.05+knot*.8,0.,1.)*.72);
+ }
+ return o;
+}
+vec4 gag(vec2 uv){
+ if(uProp<.5)return vec4(0.);
+ vec2 q=(uv-vec2(uPropX,.70+.035*sin(uPropX*13.)))*vec2(uAspect,1.)/.052;
+ vec3 c=vec3(0.);float m=0.;
+ if(uProp<1.5){
+  float hull=1.-smoothstep(.93,1.06,length(q*vec2(.46,2.3)));
+  float dome=1.-smoothstep(.93,1.06,length((q-vec2(0.,.26))*vec2(1.5,1.5)));
+  float lamp=step(.55,fract(sin(floor(q.x*3.)*9.7+floor(uTime*4.))*43758.5453))*(1.-smoothstep(.10,.18,abs(q.y+.26)))*(1.-smoothstep(1.4,1.9,abs(q.x)));
+  c=mix(vec3(.62,.68,.76),vec3(.74,.94,1.),dome);
+  c=mix(c,vec3(1.,.86,.35),lamp);
+  m=max(max(hull,dome),lamp*hull);
+ }else if(uProp<2.5){
+  float bodyq=1.-smoothstep(.32,.40,max(abs(q.x)*1.7,abs(q.y)*2.4));
+  float panel=(1.-smoothstep(.95,1.06,abs(q.x)))*(1.-smoothstep(.20,.26,abs(q.y)))*step(.36,abs(q.x));
+  c=mix(vec3(.85,.80,.62),vec3(.24,.42,.86),panel);
+  m=max(bodyq,panel);
+ }else{
+  float a=uTime*2.2,ca=cos(a),sa=sin(a);
+  vec2 s=vec2(q.x*ca-q.y*sa,q.x*sa+q.y*ca);
+  float leg=1.-smoothstep(.30,.38,length(s-vec2(clamp(s.x,-.55,.55),.35)));
+  float foot=1.-smoothstep(.28,.36,length(s-vec2(-.55,clamp(s.y,-.35,.35))));
+  c=vec3(.96,.94,.88);m=max(leg,foot);
+ }
+ return vec4(c,clamp(m,0.,1.)*.92);
+}
 void main(){
  vec2 uv=vUV,p=(uv-uMoon.xy)*vec2(uAspect,1.)/uMoon.z;float r=length(p);
  vec3 sky=mix(vec3(.095,.16,.30),vec3(.018,.035,.10),smoothstep(0.,1.,uv.y));
- float halo=exp(-max(0.,r-1.)*3.7)*.12;sky+=vec3(.42,.55,.88)*halo;
+ sky*=mix(1.,.26,step(15.5,uKind));
+ float halo=exp(-max(0.,r-1.)*3.7)*.12*(1.-step(5.5,uKind));
+ sky+=vec3(.42,.55,.88)*halo;
  vec2 starUV=uv*vec2(uAspect,1.)*90.,id=floor(starUV),cell=fract(starUV);
  float choose=step(.962,hash(id));vec2 origin=vec2(hash(id+9.1),hash(id+2.7))*.72+.14;
  float st=(1.-smoothstep(.0,.07,length(cell-origin)))*choose;
  sky+=vec3(.81,.88,1.)*st*(.72+.28*sin(uTime*.8+hash(id)*19.));
  float haze=fbm(vec2(uv.x*6.+uTime*.008,uv.y*4.));sky+=vec3(.08,.08,.16)*haze*.26;
- float disk=1.-smoothstep(.985,1.006,r);
- float texture=fbm(p*8.+vec2(8.,11.));
- float maria=spot(p,vec2(-.36,.26),vec2(.34,.41))*.30+spot(p,vec2(.25,.32),vec2(.41,.23))*.24+spot(p,vec2(-.03,-.06),vec2(.22,.30))*.18+spot(p,vec2(.4,-.24),vec2(.22,.18))*.13;
- float terrain=1.-maria+(texture-.5)*.21;
- float craters=pow(clamp(noise(p*31.+8.),0.,1.),7.)*.11;
- float shade=.84+.16*sqrt(max(0.,1.-r*r))+.033*p.x;
- vec3 moon=vec3(1.,.93,.70)*terrain*shade-vec3(craters*.7);
- vec3 color=mix(sky,moon,disk);
+ vec4 b=celestial(p);
+ vec3 color=mix(sky,b.rgb,b.a);
+ vec4 g=gag(uv);
+ color=mix(color,g.rgb,g.a);
  gl_FragColor=vec4(color,uAlpha);
 }`);
     function screenProject(p){const q=M.transform(cam.vp,p),m=cam.vp,w=m[3]*p[0]+m[7]*p[1]+m[11]*p[2]+m[15];return [(q[0]/w*.5+.5)*W,(.5-q[1]/w*.5)*H,w];}
+    /* 죽인 고래가 한 마리 늘 때마다 하늘이 한 칸씩 멀어진다. 죽는 연출 자체는 한 프레임도 바뀌지 않는다. */
+    const SKY_STAGES=[
+        {n:'달',k:0,t:[1,.93,.70],r:.27},
+        {n:'수성',k:1,t:[.62,.58,.55],r:.15},
+        {n:'금성',k:2,t:[.94,.80,.48],r:.24},
+        {n:'화성',k:1,t:[.78,.44,.30],r:.19},
+        {n:'목성',k:3,t:[.86,.72,.55],r:.42},
+        {n:'토성',k:4,t:[.90,.82,.60],r:.34},
+        {n:'천왕성',k:5,t:[.55,.84,.88],r:.25},
+        {n:'해왕성',k:5,t:[.30,.46,.92],r:.25},
+        {n:'명왕성',k:1,t:[.74,.66,.58],r:.13},
+        {n:'카이퍼 벨트',k:6,t:[.86,.90,.96],r:.55},
+        {n:'태양계',k:7,t:[1,.90,.60],r:.60},
+        {n:'성간공간',k:8,t:[1,.96,.88],r:.30},
+        {n:'프록시마 켄타우리',k:8,t:[1,.74,.54],r:.22},
+        {n:'오리온자리',k:9,t:[.80,.88,1],r:.62},
+        {n:'플레이아데스 성단',k:10,t:[.70,.84,1],r:.60},
+        {n:'오리온 대성운',k:11,t:[1,.65,.75],r:.62},
+        {n:'우리 은하',k:12,t:[.75,.85,1],r:.60},
+        {n:'국부 은하군',k:13,t:[.80,.86,1],r:.70},
+        {n:'처녀자리 은하단',k:14,t:[.90,.94,1],r:.72},
+        {n:'라니아케아 초은하단',k:15,t:[.55,.68,1],r:.80},
+        {n:'그 바깥',k:16,t:[0,0,0],r:.90}];
+    const skyStage=()=>SKY_STAGES[Math.min(SKY_STAGES.length-1,RUN.whales)];
+    // 지나가는 엑스트라: 1=UFO, 2=인공위성, 3=양말 한 짝
+    const skyGag=()=>RUN.whales%3===1?1:RUN.whales%5===3?2:RUN.whales%7===5?3:0;
     function moonProjection(){
         const q=screenProject([0,21.85,.20]);
-        return {x:q[0],y:q[1],radius:Math.min(W*.43,H*(compact?.31:.27)),alpha:S.pose.moon||0,front:q[2]>0};
+        return {x:q[0],y:q[1],radius:Math.min(W*.60,H*skyStage().r),alpha:S.pose.moon||0,front:q[2]>0};
     }
     function drawMoonSky(){
         const a=S.pose.moon||0;if(a<.001)return;
-        const q=moonProjection();gl.disable(gl.DEPTH_TEST);gl.depthMask(false);gl.useProgram(moonProgram.p);
+        const st=skyStage(),q=moonProjection();gl.disable(gl.DEPTH_TEST);gl.depthMask(false);gl.useProgram(moonProgram.p);
         attrib(moonProgram,'aPos',skyQuad,2);uv(moonProgram,'uMoon',[q.x/W,1-q.y/H,q.radius/H]);
         uf(moonProgram,'uAspect',W/H);uf(moonProgram,'uAlpha',a);uf(moonProgram,'uTime',clock);
+        uf(moonProgram,'uKind',st.k);uv(moonProgram,'uTint',st.t);uf(moonProgram,'uSeed',RUN.whales*3.7+1.3);
+        uf(moonProgram,'uProp',skyGag());
+        uf(moonProgram,'uPropX',-.18+1.36*clamp(S.phase==='finale'?S.finalT/9:(S.current?S.current.t/7:0)));
         gl.drawArrays(gl.TRIANGLES,0,6);gl.depthMask(true);gl.enable(gl.DEPTH_TEST);
     }
     /* ── Mouth bleeding: a separate bounded pool cannot be overwritten by the white splash. ── */
@@ -907,10 +1086,50 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
     ball(microphone,[0,.22,0],[.145,.19,.145],silver);
     for(let i=0;i<5;i++){const a=[];for(let j=0;j<=24;j++){const theta=j/24*TAU,y=.10+i*.05,r=.142*Math.sqrt(Math.max(.1,1-((y-.22)/.20)**2));a.push([Math.cos(theta)*r,y,Math.sin(theta)*r]);}microphone.add(new Node(tube(a,.009,4),micBlack));}
     microphone.visible=false;
+    /* ── 돌고래쇼 소품. 사람은 그 순간에만 튀어나왔다가 내팽개쳐진다. ── */
+    function ringGeo(R,r){const pts=[];for(let i=0;i<=36;i++){const a=i/36*TAU;pts.push([Math.cos(a)*R,Math.sin(a)*R,0]);}return tube(pts,r,8);}
+    const hoopRed=mat([.97,.27,.22],{gloss:62,spec:.46}),hoopYellow=mat([1,.85,.20],{gloss:62,spec:.46}),poleMat=mat([.93,.96,.97],{gloss:74,spec:.52});
+    const hoopGeo=ringGeo(1.95,.125),hulaGeo=ringGeo(2.10,.105);
+    const hoops=[0,1,2].map(i=>{const n=ROOT.add(new Node());
+        n.add(new Node(hoopGeo,i%2?hoopYellow:hoopRed));
+        const leg=n.add(new Node(cylinder(.075,3.4,10),poleMat));leg.p=[0,-3.4,0];
+        n.visible=false;return n;});
+    const hulaHoop=ROOT.add(new Node(hulaGeo,hoopYellow));hulaHoop.visible=false;
+    const beachGeo=grid(26,16,(u,v)=>{const a=u*TAU,b=v*PI;return [Math.sin(b)*Math.cos(a),Math.cos(b),Math.sin(b)*Math.sin(a)];},
+        (q,u,v)=>{const w=Math.floor(u*6)%3;return w===0?[1.35,.42,.36]:w===1?[1.25,1.25,1.22]:[.38,.74,1.30];});
+    const beachMat=mat([.78,.78,.76],{gloss:76,spec:.55});
+    const bigBall=ROOT.add(new Node(beachGeo,beachMat));bigBall.s=[1.25,1.25,1.25];bigBall.visible=false;
+    const showBall=ROOT.add(new Node(beachGeo,beachMat));showBall.s=[.46,.46,.46];showBall.visible=false;
+    const ropeNode=ROOT.add(new Node(cylinder(.028,1,8),mat([.96,.95,.88],{gloss:20})));ropeNode.visible=false;
+    const skinMat=mat([.98,.79,.64],{gloss:26,spec:.18}),suitMat=mat([.13,.60,.92],{gloss:44,spec:.32}),
+          pantsMat=mat([1,.82,.16],{gloss:44,spec:.32}),shoeMat=mat([.11,.13,.17],{gloss:50,spec:.3}),hairMat=mat([.14,.10,.08],{gloss:30});
+    const trainer=ROOT.add(new Node());
+    (function buildTrainer(){
+        const t=trainer,torso=t.add(new Node(cylinder(.205,.60,12),suitMat));torso.p=[0,.80,0];
+        ball(t,[0,.80,0],[.245,.20,.205],suitMat);ball(t,[0,1.41,0],[.215,.13,.195],suitMat);
+        ball(t,[0,1.60,0],[.195,.225,.19],skinMat);
+        const hair=ball(t,[0,1.695,.015],[.207,.15,.202],hairMat);hair.s=[.207,.14,.202];
+        const cap=ball(t,[0,1.745,-.02],[.216,.10,.208],pantsMat);cap.s=[.216,.092,.208];
+        cap.add(new Node(sphere,pantsMat)).p=[0,0,0];
+        const brim=ball(t,[0,1.705,-.20],[.145,.032,.135],pantsMat);
+        ball(t,[.015,1.555,-.19],[.052,.043,.048],skinMat);
+        for(const s of [-1,1]){
+            ball(t,[s*.075,1.585,-.165],[.035,.042,.030],mat([.10,.09,.11],{gloss:70,spec:.5}));
+            const arm=t.add(new Node());arm.p=[s*.255,1.40,0];
+            ball(arm,[0,0,0],[.095,.095,.095],suitMat);
+            arm.add(new Node(cylinder(.070,.64,8),skinMat)).p=[0,-.64,0];
+            ball(arm,[0,-.66,0],[.078,.078,.078],skinMat);
+            const leg=t.add(new Node());leg.p=[s*.105,.80,0];
+            leg.add(new Node(cylinder(.088,.80,8),pantsMat)).p=[0,-.80,0];
+            const shoe=ball(leg,[0,-.795,-.045],[.115,.085,.215],shoeMat);
+            t[s<0?'armL':'armR']=arm;t[s<0?'legL':'legR']=leg;
+        }
+    })();
+    trainer.visible=false;
     function axisBasis(y){y=V.unit(y);const x=V.unit(V.cross(y,Math.abs(y[2])>.95?[1,0,0]:[0,0,1])),z=V.cross(x,y);return new Float32Array([...x,0,...y,0,...z,0,0,0,0,1]);}
     function updateProps(){
         const p=S.pose,active=S.phase==='play'&&S.current,act=p.act,u=p.actU||0;
-        topHat.visible=!!((active&&['MOONWALK','TAP','MIC','VOGUE','LOCKING'].includes(act)&&u>.05&&u<.94)||(S.phase==='finale'&&!S.finalFall));
+        topHat.visible=!!((active&&['MOONWALK','TAP','MIC','VOGUE','LOCKING','BOW','RIDER'].includes(act)&&u>.05&&u<.94)||(S.phase==='finale'&&!S.finalFall));
         topHat.r=[-PI/2,Math.sin(clock*2)*.035,-.06*Math.sin(u*PI)];
         const bm=bodyMatrix(p),hand=contactPoint(p,'right');
         cane.visible=!!(active&&act==='TAP'&&u>.11&&u<.76);
@@ -919,6 +1138,61 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
         if(microphone.visible){microphone.p=hand;const mouth=M.transform(bm,[.25,-.28,-2.52]);microphone.basis=axisBasis(V.sub(mouth,hand));}
         floatingHat.visible=S.phase==='dead'&&S.deadT>1.4;
         if(floatingHat.visible){floatingHat.p=[-.7-S.deadT*.025,.12+Math.sin(clock*.8)*.023,-2.8];floatingHat.r=[.13,.3,Math.sin(clock*.5)*.12];floatingHat.s=[.82,.82,.82];}
+        updateShowProps();
+    }
+    function throwAway(from,side,t){
+        return [from[0]+side*7.4*t,from[1]+10.6*t-17.5*t*t,from[2]-4.6*t];
+    }
+    function updateShowProps(){
+        const live=S.phase==='play'&&S.current&&SHOW_ACTS.has(S.current.type)&&S.current.type===showProp.act;
+        for(const h of hoops)h.visible=false;
+        hulaHoop.visible=bigBall.visible=showBall.visible=ropeNode.visible=trainer.visible=false;
+        if(!live)return;
+        const p=S.pose,u=showProp.u||0,side=showProp.side||1,act=showProp.act,bm=bodyMatrix(p);
+        const fl=footPoint(p,-1),fr=footPoint(p,1);
+        if(act==='HOOP'){
+            for(let i=0;i<3;i++){const h=hoops[i];h.visible=true;
+                h.p=[mix(-6.2,6.2,(i+.5)/3)*side,2.96,-.5];h.r=[0,PI/2,Math.sin(clock*1.3+i)*.02];}
+        }else if(act==='BALLSTAND'){
+            bigBall.visible=true;
+            bigBall.p=[(fl[0]+fr[0])*.5,Math.min(fl[1],fr[1])-1.13,(fl[2]+fr[2])*.5];
+            bigBall.r=[0,clock*.4,-bigBall.p[0]/1.25];
+        }else if(act==='NOSEBALL'){
+            const head=M.transform(bm,[0,-.10,-3.05]);
+            showBall.visible=true;showBall.s=[.46,.46,.46];
+            showBall.p=[head[0],head[1]+.52+1.35*Math.sin((showProp.bounce||0)*PI),head[2]];
+            showBall.r=[clock*5.2,clock*3.1,0];
+        }else if(act==='HIGHBALL'){
+            const anchor=[side*1.1,8.96,2.0],L=2.15,sw=showProp.swing||0;
+            const ang=Math.sin(sw*TAU*2.2)*Math.exp(-sw*2.6)*.95*side;
+            showBall.visible=ropeNode.visible=true;showBall.s=[.58,.58,.58];
+            showBall.p=[anchor[0]+Math.sin(ang)*L,anchor[1]-Math.cos(ang)*L,anchor[2]];
+            showBall.r=[clock*2.4,clock*1.7,0];
+            ropeNode.p=anchor;ropeNode.basis=axisBasis(V.sub(showBall.p,anchor));ropeNode.s=[1,L,1];
+        }else if(act==='HOOPSPIN'){
+            const b=showProp.spin||0;
+            hulaHoop.visible=true;
+            hulaHoop.p=[p.x,mix(1.15,3.05,.5+.5*Math.sin(b*.7)),p.z];
+            hulaHoop.r=[PI/2+Math.sin(b)*.24,b,Math.cos(b)*.24];
+        }else if(act==='RIDER'||act==='LIFT'){
+            const ride=act==='RIDER',mount=M.transform(bm,ride?[0,1.12,.55]:[0,-.44,-3.05]);
+            const inAt=ride?.12:.17,outAt=ride?.64:.68;
+            trainer.visible=u>inAt&&u<.90;
+            if(!trainer.visible)return;
+            const pop=smooth((u-inAt)/.05);
+            if(u<outAt){
+                trainer.p=mount;trainer.r=[0,p.yaw+(ride?PI:0),(p.roll||0)*.6];
+                trainer.s=[pop,pop,pop];
+                const w=Math.sin(clock*4.6);
+                trainer.armL.r=[0,0,ride?2.05+w*.22:2.85];trainer.armR.r=[0,0,ride?-2.05+w*.22:-2.85];
+                trainer.legL.r=[ride?-.18:0,0,.10];trainer.legR.r=[ride?.18:0,0,-.10];
+            }else{
+                const t=(u-outAt)*(ride?3.2:3.0);
+                trainer.p=throwAway(mount,side,t);trainer.r=[t*9.4,t*5.1,t*7.3];trainer.s=[1,1,1];
+                trainer.armL.r=[0,0,1.2];trainer.armR.r=[0,0,-1.2];
+                trainer.legL.r=[-.6,0,.3];trainer.legR.r=[.5,0,-.3];
+            }
+        }
     }
     const showBuffer=gl.createBuffer(),showArray=new Float32Array(88000);
     const stageLamps=[[-5.1,.17,1.5],[5.1,.17,1.5],[-3.2,.17,4.4],[3.2,.17,4.4]];
@@ -1275,6 +1549,15 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
     /* ── One praise / one unseen move. Nothing is scheduled from elapsed time. ── */
     const DANCE_CATALOG = [{"type": "MOONWALK", "seconds": 6.1, "name": "직립 문워크", "family": "steps"}, {"type": "WINDMILL", "seconds": 3.8, "name": "수면 윈드밀", "family": "floor"}, {"type": "BODYWAVE", "seconds": 4.4, "name": "전신 바디 웨이브", "family": "wave"}, {"type": "SHUFFLE", "seconds": 4.0, "name": "셔플 / 러닝맨", "family": "steps"}, {"type": "HEADSPIN", "seconds": 4.1, "name": "헤드스핀", "family": "floor"}, {"type": "QUAD", "seconds": 4.15, "name": "4회전 공중제비", "family": "air"}, {"type": "ROBOT", "seconds": 4.1, "name": "로봇 팝핑", "family": "pop"}, {"type": "FLARE", "seconds": 4.0, "name": "지느러미 플레어", "family": "floor"}, {"type": "TUTTING", "seconds": 3.8, "name": "지느러미 터팅", "family": "pop"}, {"type": "POLE", "seconds": 7.0, "name": "물기둥 폴댄스", "family": "special"}, {"type": "SIXSTEP", "seconds": 4.0, "name": "식스스텝 풋워크", "family": "floor"}, {"type": "FLOSS", "seconds": 3.7, "name": "플로스", "family": "steps"}, {"type": "HANDSTAND", "seconds": 4.05, "name": "한 지느러미 프리즈", "family": "floor"}, {"type": "WORM", "seconds": 4.1, "name": "물 위의 웜", "family": "wave"}, {"type": "CHARLESTON", "seconds": 3.8, "name": "찰스턴", "family": "steps"}, {"type": "LOCKING", "seconds": 4.0, "name": "락킹 / 포인트", "family": "pop"}, {"type": "CARTWHEEL", "seconds": 3.6, "name": "연속 옆돌기", "family": "air"}, {"type": "HORSE", "seconds": 3.8, "name": "말춤", "family": "steps"}, {"type": "TAP", "seconds": 6.2, "name": "칭찬 탭댄스", "family": "special"}, {"type": "MOONSHOT", "seconds": 7.0, "name": "보름달 점프", "family": "special"}, {"type": "SWIPE", "seconds": 3.8, "name": "스와이프", "family": "floor"}, {"type": "VOGUE", "seconds": 4.0, "name": "보깅 포즈", "family": "pop"}, {"type": "KRUMP", "seconds": 3.7, "name": "크럼프 / 체스트 팝", "family": "pop"}, {"type": "BREACH", "seconds": 2.8, "name": "대형 도약", "family": "air"}, {"type": "BATTLE", "seconds": 6.6, "name": "수면 댄스 배틀", "family": "special"}, {"type": "TAILHOP", "seconds": 3.8, "name": "꼬리 포고댄스", "family": "steps"}, {"type": "CORK", "seconds": 3.55, "name": "코르크스크루", "family": "air"}, {"type": "SYNCHRO", "seconds": 7.4, "name": "다섯 마리 군무", "family": "special"}, {"type": "BACKSPIN", "seconds": 3.6, "name": "등으로 백스핀", "family": "floor"}, {"type": "CABBAGE", "seconds": 3.7, "name": "캐비지 패치", "family": "steps"}, {"type": "SLAP", "seconds": 2.75, "name": "꼬리 드럼 솔로", "family": "percussion"}, {"type": "STAND", "seconds": 3.55, "name": "꼬리 피루엣", "family": "steps"}, {"type": "DOUBLE", "seconds": 3.6, "name": "연속 바운스 점프", "family": "air"}];
     DANCE_CATALOG.push({type:'MIC',seconds:5.0,name:'마이크 퍼포먼스',family:'pop'});
+    DANCE_CATALOG.push(
+        {type:'HOOP',seconds:4.6,name:'링 통과',family:'show'},
+        {type:'BALLSTAND',seconds:5.4,name:'공 위 균형',family:'show'},
+        {type:'NOSEBALL',seconds:4.4,name:'코로 공 튕기기',family:'show'},
+        {type:'HIGHBALL',seconds:4.2,name:'매달린 공 치기',family:'show'},
+        {type:'RIDER',seconds:5.4,name:'사람 태우기',family:'show'},
+        {type:'LIFT',seconds:5.2,name:'입으로 사람 들어올리기',family:'show'},
+        {type:'HOOPSPIN',seconds:4.0,name:'훌라후프',family:'show'},
+        {type:'BOW',seconds:2.4,name:'인사',family:'show'});
     const DUR=Object.fromEntries(DANCE_CATALOG.map(a=>[a.type,a.seconds]));
     const PROGRAM=DANCE_CATALOG.map(a=>a.type);
     const SHOW_SECONDS=DANCE_CATALOG.reduce((n,a)=>n+a.seconds,0); // informational only, never a trigger
@@ -1284,6 +1567,9 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
         function pick(pool){let fresh=pool.filter(x=>!used.has(x)&&!RUN.seen.includes(x));if(!fresh.length)fresh=pool.filter(x=>!used.has(x));if(!fresh.length)return;
             const t=fresh[Math.floor(Math.random()*fresh.length)];used.add(t);out.push(t);}
         pick(['MOONWALK','MIC','TAP']);
+        // 한 판에 돌고래쇼 종목 둘. 소품이 나오는 순서가 판마다 달라진다.
+        pick(['HOOP','BALLSTAND','NOSEBALL','HIGHBALL']);
+        pick(['RIDER','LIFT','HOOPSPIN','HOOP','BALLSTAND','BOW']);
         pick(['BODYWAVE','SHUFFLE','CHARLESTON','FLOSS','ROBOT','TUTTING','VOGUE','LOCKING','HORSE','CABBAGE']);
         pick(['WINDMILL','FLARE','SIXSTEP','SWIPE','HEADSPIN','BACKSPIN','WORM']);
         pick(['TAP','MIC','MOONWALK']);
@@ -1713,6 +1999,121 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
         if(!['WORM','BACKSPIN','HEADSPIN','FLARE','WINDMILL','SIXSTEP','SWIPE'].includes(type))hit('standUp',.145,1.5,'tail');
     }
 
+    /* ── 돌고래쇼 종목. 춤과 달리 화면에 소품이 남는다. ── */
+    const SHOW_ACTS=new Set(['HOOP','BALLSTAND','NOSEBALL','HIGHBALL','RIDER','LIFT','HOOPSPIN','BOW']);
+    let showProp={};
+    function showAct(p,m,u){
+        const type=m.type,side=m.side||1,on=smooth((u-.05)/.12)*(1-smooth((u-.86)/.10));
+        const sin=Math.sin,cos=Math.cos;
+        const hit=(key,at,power=2.4,part='body')=>event(m,key,u>=at,()=>impact(power,part));
+        const note=(key,at,n=0)=>event(m,key,u>=at,()=>{Audio.tap(n);S.react=Math.max(S.react,.35);});
+        const stand=()=>{p.upright=on;p.pitch=PI/2*on;p.y=mix(.51,3.25,on);p.flap=0;p.bend=.12;};
+        p.softFeet=1;showProp={act:type,u,side};
+        if(type==='HOOP'){
+            const run=clamp((u-.10)/.76),c=run*3,k=Math.min(2,Math.floor(c)),f=c-k;
+            p.x=mix(-6.2,6.2,run)*side;p.z=-.5;p.y=.51+sin(f*PI)*2.55;
+            p.yaw=-side*PI/2;p.pitch=cos(f*PI)*.66;p.roll=side*sin(run*TAU*1.5)*.24;
+            p.tail=sin(f*TAU*2)*.58;p.flap=sin(f*PI)*1.2;
+            p.finL=sin(f*TAU)*.75;p.finR=-p.finL;
+            p.air=p.y>1.3;p.streak=sin(f*PI);p.bend=.85;
+            for(let i=0;i<3;i++){
+                hit('dive'+i,.10+i*.2533+.19,2.6);
+                event(m,'ring'+i,u>=.10+(i+.5)*.2533,()=>{Audio.whoosh(2.3);Audio.tap(i);S.react=Math.max(S.react,.6);});
+            }
+            hit('hoopLand',.90,4.3);
+        }
+        else if(type==='BALLSTAND'){
+            stand();
+            const w=sin(u*TAU*2.1)+sin(u*TAU*3.7)*.6;
+            p.roll=w*.20*on;p.yaw=sin(u*TAU*1.3)*.24*on;p.pitch+=sin(u*TAU*2.7)*.11*on;
+            p.finL=(1.12+w*.38)*on;p.finR=(1.12-w*.38)*on;
+            p.armPitchL=-.34*on;p.armPitchR=-.34*on;p.armYawL=(.95-w*.30)*on;p.armYawR=(-.95-w*.30)*on;
+            p.spread=.30*on;p.footL=p.footR=.18*on;p.x=sin(u*TAU*1.15)*1.5*on*side;
+            groundFeet(p,on);p.y+=2.38*on;
+            for(let i=0;i<5;i++)note('wob'+i,.18+i*.62/5,i%4);
+            hit('ballOff',.91,3.6);
+        }
+        else if(type==='NOSEBALL'){
+            stand();
+            const b=clamp((u-.15)/.66)*5;showProp.bounce=b%1;
+            p.pitch+=sin(b*TAU)*.09*on;p.yaw=sin(b*PI)*.15*on;
+            p.finL=(.55+.45*sin(b*TAU))*on;p.finR=(.55-.45*sin(b*TAU))*on;
+            p.armYawL=.78*on;p.armYawR=-.78*on;p.armPitchL=-.52*on;p.armPitchR=-.52*on;
+            p.x=sin(b*PI*.5)*.85*on*side;
+            p.liftL=Math.max(0,sin(b*TAU))*.17*on;p.liftR=Math.max(0,-sin(b*TAU))*.17*on;
+            groundFeet(p,on);
+            for(let i=0;i<5;i++)note('bop'+i,.15+(i+.03)*.66/5,i%4);
+            hit('nbEnd',.91,3.0,'tail');
+        }
+        else if(type==='HIGHBALL'){
+            const s=clamp((u-.16)/.62);showProp.swing=clamp((u-.50)/.46);
+            p.y=.51+4*s*(1-s)*9.4;p.x=sin(s*PI)*1.1*side;p.z=sin(s*PI)*.5;
+            p.pitch=kf(u,[[0,0],[.16,.62],[.42,1.28],[.56,1.28],[.80,-.22],[1,0]]);
+            const whack=smooth((u-.46)/.05)*(1-smooth((u-.57)/.09));
+            p.tail=mix(sin(u*TAU*6)*.9,-1.38,whack);
+            p.flap=(s>0&&s<1)?1.25:0;p.finL=sin(u*TAU*5)*.88;p.finR=-p.finL;
+            p.air=s>0&&s<1;p.streak=p.air?1.1:0;p.bend=.9;
+            hit('hbJump',.17,2.4);
+            event(m,'whack',u>=.50,()=>{Audio.whoosh(2.7);Audio.tap(3);Audio.punch(3.4);S.react=Math.max(S.react,.9);S.shake=Math.max(S.shake,1.15);});
+            hit('hbLand',.88,4.4);
+        }
+        else if(type==='RIDER'){
+            const run=clamp((u-.12)/.50);
+            p.x=mix(-4.4,3.4,run)*side;p.z=-.3;p.y=.51+sin(run*PI)*.58;
+            p.yaw=-side*PI/2;p.pitch=-.10+sin(run*TAU*2)*.11;p.roll=side*sin(run*TAU*1.6)*.17;
+            p.tail=sin(u*TAU*4)*.52;p.finL=.35;p.finR=.35;p.flap=.28;p.bend=.85;
+            const buck=smooth((u-.62)/.06)*(1-smooth((u-.78)/.10));
+            p.pitch-=buck*1.3;p.y+=buck*1.6;p.roll+=side*buck*.55;
+            event(m,'popIn',u>=.13,()=>{sprayAt([p.x,.1,p.z],1.2);Audio.tap(2);});
+            hit('riderRide',.20,1.7);
+            event(m,'buck',u>=.63,()=>{Audio.whoosh(2.5);Audio.laugh(3.4,S.exhaust);S.shake=Math.max(S.shake,1.2);});
+            event(m,'splashdown',u>=.80,()=>{sprayAt([p.x+side*5.2,.1,p.z-3.2],2.6);Audio.splash(2.8);ripple(p.x+side*5.2,p.z-3.2,3.2);});
+            hit('riderLand',.86,4.2);
+        }
+        else if(type==='LIFT'){
+            const rise=smooth((u-.20)/.26)*(1-smooth((u-.70)/.10));
+            p.upright=rise;p.pitch=PI*.46*rise;p.y=mix(.51,3.05,rise);
+            p.x=sin(u*TAU)*.45*side;p.yaw=sin(u*TAU*.7)*.18*rise;
+            p.finL=.30+.58*rise;p.finR=.30+.58*rise;p.flap=0;p.bend=.3;
+            p.armYawL=.72*rise;p.armYawR=-.72*rise;p.spread=.22*rise;
+            p.footL=p.footR=.16*rise;p.tail=sin(u*TAU*3)*.10*rise;
+            groundFeet(p,rise);
+            const toss=smooth((u-.70)/.05)*(1-smooth((u-.84)/.10));
+            p.pitch+=toss*.55;p.y+=toss*.85;
+            event(m,'popIn',u>=.18,()=>{sprayAt([p.x,.1,p.z-2.6],1.1);Audio.tap(1);});
+            hit('liftUp',.24,2.0,'tail');
+            event(m,'toss',u>=.69,()=>{Audio.whoosh(2.9);Audio.laugh(3.6,S.exhaust);S.shake=Math.max(S.shake,1.05);});
+            event(m,'splashdown',u>=.84,()=>{sprayAt([p.x+side*5.2,.1,p.z-3.2],2.6);Audio.splash(2.8);ripple(p.x+side*5.2,p.z-3.2,3.2);});
+            hit('liftLand',.87,3.9);
+        }
+        else if(type==='HOOPSPIN'){
+            stand();
+            const b=clamp((u-.15)/.68)*TAU*3.2;showProp.spin=b;
+            p.roll=sin(b)*.21*on;p.yaw=cos(b)*.19*on;p.pitch+=sin(b*2)*.08*on;
+            p.finL=(1.05+.22*sin(b))*on;p.finR=(1.05-.22*sin(b))*on;
+            p.armPitchL=-1.05*on;p.armPitchR=-1.05*on;p.armYawL=.86*on;p.armYawR=-.86*on;
+            p.chest=.05*Math.abs(sin(b))*on;p.spread=.25*on;
+            groundFeet(p,on);
+            for(let i=0;i<6;i++)note('hs'+i,.16+i*.68/6,i%5);
+            hit('hsEnd',.90,3.1,'tail');
+        }
+        else if(type==='BOW'){
+            const q=smooth((u-.06)/.14)*(1-smooth((u-.80)/.14));
+            p.upright=q;p.pitch=PI/2*q;p.y=mix(.51,3.25,q);p.flap=0;p.bend=.12;
+            const bow=smooth((u-.30)/.13)*(1-smooth((u-.55)/.14));
+            p.pitch+=bow*1.18;p.yaw=sin(u*TAU)*.13*q;
+            p.finL=(.30+bow*.88)*q;p.finR=(.30+bow*.88)*q;
+            p.armPitchL=(-.20-bow*.72)*q;p.armPitchR=(-.20-bow*.72)*q;
+            p.armYawL=(.62+bow*.32)*q;p.armYawR=(-.62-bow*.32)*q;
+            p.spread=.22*q;groundFeet(p,q);
+            hit('bowUp',.14,1.6,'tail');
+            event(m,'applause',u>=.42,()=>{Audio.fanfare();for(let i=0;i<4;i++)Audio.hiss(.17,.05,2400,i*.035,1500,'bandpass');});
+            hit('bowEnd',.88,2.7,'tail');
+        }
+        p.act=type;p.actU=u;p.variant=0;
+        event(m,'showVoice',u>=.22,()=>Audio.laugh(2.8,S.exhaust));
+        return p;
+    }
     function evaluateMove(m,dt) {
         const p=neutralPose(),u=clamp(m.t/DUR[m.type]),side=m.side,ex=S.exhaust;
         const type=m.type==='SPIN'?'TRIPLE':m.type;
@@ -1730,6 +2131,7 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
             for(let i=0;i<5;i++)miniStep(m,'micStep'+i,u>=.18+(i+.2)*.62/5,p,i%2?-1:1,i);
             hit('micStand',.16,1.6,'tail');hit('micExit',.91,3.3);voiced(.25,2.0);p.act='MIC';
         }
+        else if(SHOW_ACTS.has(type)){showAct(p,m,u);}
         else if(['MOONWALK','TAP','POLE','SYNCHRO','BATTLE'].includes(type)){choreograph(p,m,u,dt);}
         else if(['QUAD','TRIPLE','BACKFLIP','CORK','BREACH'].includes(type)) {
             const s=clamp((u-.13)/.73),air=s>0&&s<1;
@@ -2271,11 +2673,13 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
         const target=[S.pose.x*.93, .40+jump*.81+cp*.13,mix(.24,-.55,cp)+S.pose.z*.94];
         const moonCam=S.pose.moonCam||0;
         let baseDir=[.72,mix(.34,.58,cp),-.80];
-        const stage=(['MOONWALK','TAP','POLE','SYNCHRO','BATTLE'].includes(S.pose.act)||NEW_DANCES.has(S.pose.act))&&!dead;
+        const stage=(['MOONWALK','TAP','POLE','SYNCHRO','BATTLE'].includes(S.pose.act)||NEW_DANCES.has(S.pose.act)||SHOW_ACTS.has(S.pose.act))&&!dead;
         const stageOn=stage?smooth((S.pose.actU-.01)/.10)*(1-smooth((S.pose.actU-.91)/.08)):0;
         if(stage){const travel=S.pose.act==='MOONWALK'?1-smooth((S.pose.actU-.57)/.07):1;target[0]*=1-stageOn*travel;target[2]*=1-stageOn*travel;
             if(S.pose.act==='SYNCHRO'){baseDir=V.lerp(baseDir,[0,.43,-1],stageOn);target[2]=mix(target[2],1.3,stageOn);}
             if(S.pose.act==='BATTLE')baseDir=V.lerp(baseDir,[.6,.65,-.86],stageOn);
+            if(['HOOP','RIDER','HIGHBALL'].includes(S.pose.act))baseDir=V.lerp(baseDir,[.14,.34,-1],stageOn);
+            if(['BALLSTAND','NOSEBALL','HOOPSPIN','BOW','LIFT'].includes(S.pose.act))baseDir=V.lerp(baseDir,[.45,.26,-.92],stageOn);
             if(['BODYWAVE','WORM'].includes(S.pose.act))baseDir=V.lerp(baseDir,[.90,.38,-.67],stageOn);
             if(['TUTTING','FLOSS','HORSE','VOGUE','ROBOT','LOCKING','KRUMP'].includes(S.pose.act))baseDir=V.lerp(baseDir,[.48,.30,-.90],stageOn);
             if(['SIXSTEP','FLARE','WINDMILL','BACKSPIN'].includes(S.pose.act))baseDir=V.lerp(baseDir,[.6,.70,-.8],stageOn);
@@ -2292,6 +2696,10 @@ void main(){vec2 q=(gl_PointCoord*2.-1.)*vec2(1.04,.89);float r=length(q);float 
             if(S.pose.act==='TAP')for(const t of tileInfo(S.current))pts.push([t.p[0]-.6,.13,-.7],[t.p[0]+.6,.13,.7]);
             if(S.pose.act==='POLE')for(let t=0;t<=1;t+=.1)pts.push(columnPoint(t,S.pose.actU,S.pose.variant));
             if(S.pose.act==='BATTLE')pts.push([-2.7,.12,-5.8],[2.7,.12,-5.8]);
+            if(S.pose.act==='HOOP')for(const h of hoops)pts.push([h.p[0],h.p[1]+2.1,h.p[2]],[h.p[0],.1,h.p[2]]);
+            if(S.pose.act==='HIGHBALL')pts.push([showBall.p[0],9.1,showBall.p[2]],[showBall.p[0],.1,showBall.p[2]]);
+            if(S.pose.act==='BALLSTAND')pts.push([bigBall.p[0]-1.4,.1,bigBall.p[2]],[bigBall.p[0]+1.4,.1,bigBall.p[2]]);
+            if(trainer.visible)pts.push(trainer.p,[trainer.p[0],trainer.p[1]+1.9,trainer.p[2]]);
         }
         for(const g of guests)if(g.root.visible){
             for(const row of [PROFILE[0],PROFILE[4],PROFILE[8],PROFILE[10]])for(const a of [0,PI/2,PI,-PI/2])pts.push(M.transform(g.body.world,surface(row[0],a)));
